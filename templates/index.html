@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Neem Impex Inventory</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <div class="sidebar" id="sidebar">
+        <button class="close-sidebar-btn" onclick="toggleSidebar()">×</button>
+        <div style="padding: 10px;">
+            <h1 style="color: white; font-size: 24px; font-weight: bold; margin-bottom: 5px;">{{ g.user['company_name']
+                if g.user else 'NEEM IMPEX' }}</h1>
+            <p style="color: var(--accent-primary); font-size: 12px; margin-top: 0; letter-spacing: 2px;">INVENTORY</p>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="/" class="active">
+                <span>📦</span> <span style="margin-left: 10px;">Inventory</span>
+            </a>
+            <a href="/calculator">
+                <span>🧮</span> <span style="margin-left: 10px;">CBM Calculator</span>
+            </a>
+            <a href="/logout" class="logout-link">
+                <span style="margin-left: 0;">Sign Out</span>
+            </a>
+        </nav>
+    </div>
+
+    <div class="main-content" id="mainContent">
+
+        <div class="top-header">
+            <div class="page-title">
+                <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
+                <h1>Inventory Management</h1>
+            </div>
+
+            <div class="card"
+                style="margin-bottom: 0; padding: 10px 20px; display: flex; align-items: center; gap: 15px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">BULK IMPORT</span>
+                    <a href="/download_template" class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;">⬇
+                        Template</a>
+                </div>
+                <div style="height: 20px; width: 1px; background: #eee;"></div>
+                <form action="/import_inventory" method="POST" enctype="multipart/form-data"
+                    style="display:flex; align-items:center; gap: 10px; margin: 0;">
+                    <input type="file" name="csv_file" accept=".csv" style="font-size: 12px;">
+                    <button type="submit" class="btn btn-primary"
+                        style="font-size: 12px; padding: 8px 15px;">Upload</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3
+                style="margin-top: 0; margin-bottom: 25px; color: var(--accent-primary); border-bottom: 1px solid #eee; padding-bottom: 15px;">
+                Add New Product</h3>
+            <form action="/add" method="POST" enctype="multipart/form-data">
+                <div class="grid-2">
+                    <div>
+                        <label>Product Name*</label>
+                        <input type="text" name="name" required placeholder="Enter product name...">
+
+                        <div style="margin-top: 15px;">
+                            <label>Category</label>
+                            <input type="text" name="category" placeholder="e.g. Spices, Grains">
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                            <div>
+                                <label>Pack Size (Gm)</label>
+                                <input type="number" step="0.01" name="pack_size_gm" placeholder="e.g. 500">
+                            </div>
+                            <div>
+                                <label>Gross Weight (Kg)</label>
+                                <input type="number" step="0.01" name="gross_weight_case" placeholder="e.g. 12.5">
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label>Case Dimensions (Inches)</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                            <div><input type="number" step="0.01" name="case_len" placeholder="L"></div>
+                            <div><input type="number" step="0.01" name="case_width" placeholder="W"></div>
+                            <div><input type="number" step="0.01" name="case_height" placeholder="H"></div>
+                        </div>
+
+                        <div style="margin-top: 20px;">
+                            <label>Case Size (Units)</label>
+                            <input type="number" name="case_size" placeholder="e.g. 24">
+                        </div>
+
+                        <div style="margin-top: 20px;">
+                            <label>Product Image</label>
+                            <div class="file-upload-wrapper">
+                                <input type="file" name="image_file">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 25px; text-align: right;">
+                    <button type="submit" class="btn btn-primary">Add Product</button>
+                </div>
+            </form>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div style="display: flex; gap: 15px; align-items: center; width: 100%;">
+                <h3 style="margin: 0; white-space: nowrap;">Current Stock</h3>
+                <input type="text" id="productSearch" onkeyup="filterProducts()" placeholder="Search by Name or ID..."
+                    class="search-input"
+                    style="font-size: 13px; border-radius: 6px; border: 1px solid #ccc; width: 300px;">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <!-- Save Changes removed (using single edit modal) -->
+                <button type="button" onclick="document.getElementById('inventoryForm').submit()" class="btn btn-danger"
+                    style="white-space: nowrap;">Delete Selected</button>
+            </div>
+        </div>
+
+        <form id="inventoryForm" action="/delete" method="POST">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="selectAll"
+                                    onclick="toggleSelectAll(this)"></th>
+                            <th style="width: 50px;">Image</th>
+                            <th style="width: 120px;">Product ID</th>
+                            <th>Product Name</th>
+                            <th>Category</th>
+                            <th>Pack (Gm)</th>
+                            <th>Case Size</th>
+                            <th>Gross Wt</th>
+                            <th>Dimensions (L x W x H)</th>
+                            <th>Vol (Cu.Ft)</th>
+                            <th>Net Wt</th>
+                            <th style="width: 60px;">Edit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in products %}
+                        <tr>
+                            <td><input type="checkbox" name="delete_id" value="{{ product['id'] }}"></td>
+                            <td>
+                                {% if product['image_path'] %}
+                                <img src="{{ url_for('static', filename='uploads/' + product['image_path']) }}"
+                                    class="table-thumb"
+                                    style="width: 30px; height: 30px; border-radius: 4px; object-fit: cover;">
+                                {% else %}
+                                <span style="opacity: 0.3;">📦</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-muted" style="font-weight: 500; font-size: 13px;">NI-{{ "%03d" |
+                                format(product['id']) }}-{{ product['category'] }}</td>
+
+                            <td style="font-weight: 500;">{{ product['name'] }}</td>
+                            <td>{{ product['category'] or '-' }}</td>
+                            <td>{{ product['pack_size_gm'] }}</td>
+                            <td>{{ product['case_size'] }}</td>
+                            <td>{{ product['gross_weight_case'] }}</td>
+                            <td class="text-muted" style="font-size: 13px;">{{ product['case_len_inch'] }} x {{
+                                product['case_width_inch'] }} x {{ product['case_height_inch'] }}</td>
+                            <td class="text-muted">{{ "%.4f"|format(product['volume_value']) }}</td>
+                            <td class="text-muted">{{ "%.2f"|format(product['net_weight_case']) }}</td>
+                            <td>
+                                <button type="button" class="btn btn-secondary" style="padding: 5px 10px;"
+                                    data-product='{{ product | tojson | safe }}'
+                                    onclick="openEditModalFromData(this)">✏️</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+    </div>
+    </form>
+    </div>
+
+    <!-- EDIT PRODUCT MODAL -->
+    <div class="modal-overlay" id="editProductModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;">
+        <div class="modal-content"
+            style="background: white; padding: 25px; border-radius: 12px; width: 500px; max-width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <div class="modal-header"
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin: 0; color: var(--accent-primary);">Edit Product</h3>
+                <span onclick="closeEditModal()" style="cursor: pointer; font-size: 24px;">&times;</span>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editId">
+
+                <div style="margin-bottom: 15px;">
+                    <label>Product Name</label>
+                    <input type="text" id="editName" class="clean-input"
+                        style="width: 100%; border: 1px solid #ddd; padding: 8px;">
+                </div>
+
+                <div class="grid-2"
+                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div><label>Category</label><input type="text" id="editCategory"></div>
+                    <div><label>Pack Size (Gm)</label><input type="number" step="0.01" id="editPackSize"></div>
+                </div>
+
+                <div class="grid-2"
+                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div><label>Case Size</label><input type="number" id="editCaseSize"></div>
+                    <div><label>Gross Wt (Kg)</label><input type="number" step="0.01" id="editGrossWt"></div>
+                </div>
+
+                <label>Dimensions (L x W x H)</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                    <input type="number" step="0.01" id="editL" placeholder="L">
+                    <input type="number" step="0.01" id="editW" placeholder="W">
+                    <input type="number" step="0.01" id="editH" placeholder="H">
+                </div>
+
+            </div>
+            <div class="modal-footer" style="text-align: right;">
+                <button type="button" onclick="closeEditModal()" class="btn btn-secondary">Cancel</button>
+                <button type="button" onclick="saveProductChanges()" class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+        }
+
+        function openEditModalFromData(btn) {
+            const product = JSON.parse(btn.getAttribute('data-product'));
+            openEditModal(product);
+        }
+
+        function openEditModal(product) {
+            document.getElementById('editId').value = product.id;
+            document.getElementById('editName').value = product.name;
+            document.getElementById('editCategory').value = product.category || '';
+            document.getElementById('editPackSize').value = product.pack_size_gm;
+            document.getElementById('editCaseSize').value = product.case_size;
+            document.getElementById('editGrossWt').value = product.gross_weight_case;
+            document.getElementById('editL').value = product.case_len_inch;
+            document.getElementById('editW').value = product.case_width_inch;
+            document.getElementById('editH').value = product.case_height_inch;
+
+            document.getElementById('editProductModal').style.display = 'flex';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editProductModal').style.display = 'none';
+        }
+
+        function saveProductChanges() {
+            const payload = {
+                id: document.getElementById('editId').value,
+                name: document.getElementById('editName').value,
+                category: document.getElementById('editCategory').value,
+                pack_size_gm: document.getElementById('editPackSize').value,
+                case_size: document.getElementById('editCaseSize').value,
+                gross_weight_case: document.getElementById('editGrossWt').value,
+                case_len_inch: document.getElementById('editL').value,
+                case_width_inch: document.getElementById('editW').value,
+                case_height_inch: document.getElementById('editH').value
+            };
+
+            fetch('/api/update_product', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(res => res.json()).then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error saving product: ' + data.error);
+                }
+            });
+        }
+
+        function toggleSelectAll(source) {
+            checkboxes = document.getElementsByName('delete_id');
+            for (var i = 0, n = checkboxes.length; i < n; i++) {
+                checkboxes[i].checked = source.checked;
+            }
+        }
+
+        function filterProducts() {
+            var input, filter, table, tr, tdName, tdId, i, txtValueName, txtValueId;
+            input = document.getElementById("productSearch");
+            filter = input.value.toUpperCase();
+            table = document.querySelector("table");
+            tr = table.getElementsByTagName("tr");
+
+            for (i = 0; i < tr.length; i++) {
+                // Column 2 matches the "Product ID" column index (0-based: checkbox, image, ID, Name...)
+                // Column 3 matches the "Product Name" column index
+                tdId = tr[i].getElementsByTagName("td")[2];
+                tdName = tr[i].getElementsByTagName("td")[3];
+
+                if (tdId || tdName) {
+                    txtValueId = tdId ? (tdId.textContent || tdId.innerText) : "";
+                    txtValueName = tdName ? (tdName.textContent || tdName.innerText) : "";
+
+                    if (txtValueId.toUpperCase().indexOf(filter) > -1 || txtValueName.toUpperCase().indexOf(filter) > -1) {
+                        tr[i].style.display = "";
+                    } else {
+                        tr[i].style.display = "none";
+                    }
+                }
+            }
+        }
+
+    </script>
+
+</body>
+
+</html>

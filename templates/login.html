@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Neem Impex Inventory</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="login-body">
+
+    <!-- ANIMATED BACKGROUND -->
+    <div class="animated-bg">
+        <!-- Star Anise -->
+        <div class="spice-icon icon-1" style="top: 10%; left: 5%;">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2l2.5 7h7.5l-6 4.5 2.5 7-6.5-4.5-6.5 4.5 2.5-7-6-4.5h7.5z" />
+            </svg>
+        </div>
+        <div class="spice-icon icon-2" style="top: 70%; left: 85%;">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2l2.5 7h7.5l-6 4.5 2.5 7-6.5-4.5-6.5 4.5 2.5-7-6-4.5h7.5z" />
+            </svg>
+        </div>
+
+        <!-- Cardamom (Oval shape) -->
+        <div class="spice-icon icon-3" style="top: 40%; left: 15%;">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2c-4 0-8 5-8 11s4 9 8 9 8-3 8-9-4-11-8-11zm0 18c-3 0-6-3-6-7s3-7 6-7 6 3 6 7-3 7-6 7z" />
+            </svg>
+        </div>
+        <div class="spice-icon icon-4" style="top: 80%; left: 35%;">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2c-4 0-8 5-8 11s4 9 8 9 8-3 8-9-4-11-8-11zm0 18c-3 0-6-3-6-7s3-7 6-7 6 3 6 7-3 7-6 7z" />
+            </svg>
+        </div>
+        <div class="spice-icon icon-14" style="top: 20%; left: 60%;">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2c-4 0-8 5-8 11s4 9 8 9 8-3 8-9-4-11-8-11zm0 18c-3 0-6-3-6-7s3-7 6-7 6 3 6 7-3 7-6 7z" />
+            </svg>
+        </div>
+
+        <!-- Clove -->
+        <div class="spice-icon icon-5" style="top: 15%; left: 80%;">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path
+                    d="M12 2c-2 0-3.5 1.5-3.5 3.5 0 1.5.5 2.5 1.5 3l-1 8h-2v2h8v-2h-2l-1-8c1-.5 1.5-1.5 1.5-3 0-2-1.5-3.5-3.5-3.5z" />
+            </svg>
+        </div>
+        <div class="spice-icon icon-6" style="top: 60%; left: 10%;">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path
+                    d="M12 2c-2 0-3.5 1.5-3.5 3.5 0 1.5.5 2.5 1.5 3l-1 8h-2v2h8v-2h-2l-1-8c1-.5 1.5-1.5 1.5-3 0-2-1.5-3.5-3.5-3.5z" />
+            </svg>
+        </div>
+
+        <!-- Cinnamon Stick (Rectangular/Rolled) -->
+        <div class="spice-icon icon-7" style="top: 30%; left: 90%;">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 4l2 16h8l2-16H6zm10 2l-1.5 12h-5L8 6h8z" />
+            </svg>
+        </div>
+        <div class="spice-icon icon-8" style="top: 85%; left: 20%;">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 4l2 16h8l2-16H6zm10 2l-1.5 12h-5L8 6h8z" />
+            </svg>
+        </div>
+        <div class="spice-icon icon-12" style="top: 55%; left: 70%;">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 4l2 16h8l2-16H6zm10 2l-1.5 12h-5L8 6h8z" />
+            </svg>
+        </div>
+
+        <!-- Black Pepper (Circle) -->
+        <div class="spice-icon icon-9" style="top: 50%; left: 50%;">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="12" r="6" />
+            </svg>
+        </div>
+        <div class="spice-icon icon-10" style="top: 25%; left: 30%;">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="12" r="6" />
+            </svg>
+        </div>
+        <div class="spice-icon icon-11" style="top: 90%; left: 60%;">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="12" r="6" />
+            </svg>
+        </div>
+        <div class="spice-icon icon-13" style="top: 5%; left: 45%;">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="12" r="6" />
+            </svg>
+        </div>
+    </div>
+
+    <div class="login-container">
+        <!-- LOGO / BRANDING -->
+        <div class="brand-header">
+            <h1>NEEM IMPEX</h1>
+            <p>INVENTORY MANAGEMENT</p>
+        </div>
+
+        <!-- AUTH CARD -->
+        <div class="card login-card">
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <!-- LOGIN FORM -->
+            <div id="loginForm">
+                <h2>Welcome Back</h2>
+                <p class="subtitle">Please enter your details to sign in.</p>
+                <form action="/login" method="POST">
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" name="email" required placeholder="name@company.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" name="password" required placeholder="••••••••">
+                    </div>
+                    <div style="text-align: right; margin-bottom: 20px;">
+                        <a href="#" onclick="showForgot()"
+                            style="color: var(--accent-primary); font-size: 13px; text-decoration: none;">Forgot
+                            Password?</a>
+                    </div>
+                    <button type="submit" class="btn btn-primary full-width">Sign In</button>
+                </form>
+                <div class="switch-auth">
+                    <p>Don't have an account? <a href="#" onclick="showSignup()">Create account</a></p>
+                </div>
+            </div>
+
+            <!-- SIGNUP FORM -->
+            <div id="signupForm" style="display: none;">
+                <h2>Create Account</h2>
+                <p class="subtitle">Start managing your inventory today.</p>
+                <form action="/signup" method="POST">
+                    <div class="form-group">
+                        <label>Company Name</label>
+                        <input type="text" name="company_name" required placeholder="e.g. Neem Impex">
+                    </div>
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" name="email" required placeholder="name@company.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" name="password" required placeholder="Create a password">
+                    </div>
+                    <div class="form-group">
+                        <label>Confirm Password</label>
+                        <input type="password" name="confirm_password" required placeholder="Confirm password">
+                    </div>
+                    <button type="submit" class="btn btn-primary full-width">Sign Up</button>
+                </form>
+                <div class="switch-auth">
+                    <p>Already have an account? <a href="#" onclick="showLogin()">Sign in</a></p>
+                </div>
+            </div>
+
+            <!-- FORGOT PASSWORD FORM -->
+            <div id="forgotForm" style="display: none;">
+                <h2>Reset Password</h2>
+                <p class="subtitle">Enter your email to receive a reset link.</p>
+                <form action="/forgot_password" method="POST">
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" name="email" required placeholder="name@company.com">
+                    </div>
+                    <button type="submit" class="btn btn-primary full-width">Send Reset Link</button>
+                </form>
+                <div class="switch-auth">
+                    <p><a href="#" onclick="showLogin()">Back to Login</a></p>
+                </div>
+            </div>
+
+            <!-- RESET PASSWORD FORM (Contextual) -->
+            {% if reset_token %}
+            <script>
+                window.onload = function () {
+                    document.getElementById('loginForm').style.display = 'none';
+                    document.getElementById('resetForm').style.display = 'block';
+                }
+            </script>
+            <div id="resetForm" style="display: none;">
+                <h2>New Password</h2>
+                <p class="subtitle">Enter your new password below.</p>
+                <form action="/reset_password/{{ reset_token }}" method="POST">
+                    <div class="form-group">
+                        <label>New Password</label>
+                        <input type="password" name="password" required placeholder="New password">
+                    </div>
+                    <button type="submit" class="btn btn-primary full-width">Reset Password</button>
+                </form>
+            </div>
+            {% endif %}
+
+        </div>
+
+        <p style="color: rgba(255,255,255,0.7); font-size: 12px; margin-top: 20px;">&copy; 2026 Neem Impex. All rights
+            reserved.</p>
+    </div>
+
+    <script>
+        function showSignup() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('signupForm').style.display = 'block';
+            document.getElementById('forgotForm').style.display = 'none';
+        }
+        function showLogin() {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('signupForm').style.display = 'none';
+            document.getElementById('forgotForm').style.display = 'none';
+        }
+        function showForgot() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('signupForm').style.display = 'none';
+            document.getElementById('forgotForm').style.display = 'block';
+        }
+    </script>
+</body>
+
+</html>

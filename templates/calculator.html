@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>CBM Calculator - Neem Impex</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+    <div class="sidebar" id="sidebar">
+        <button class="close-sidebar-btn" onclick="toggleSidebar()">×</button>
+        <div style="padding: 10px;">
+            <h1 style="color: white; font-size: 24px; font-weight: bold; margin-bottom: 5px;">{{ g.user['company_name']
+                if g.user else 'Neem Impex' }}</h1>
+            <p style="color: var(--accent-primary); font-size: 12px; margin-top: 0; letter-spacing: 2px;">Calculator</p>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="/">
+                <span>📦</span> <span style="margin-left: 10px;">Inventory</span>
+            </a>
+            <a href="/calculator" class="active">
+                <span>🧮</span> <span style="margin-left: 10px;">CBM Calculator</span>
+            </a>
+            <a href="/logout" class="logout-link">
+                <span style="margin-left: 0;">Sign Out</span>
+            </a>
+        </nav>
+    </div>
+
+    <div class="main-content" id="mainContent">
+
+        <div class="top-header">
+            <div class="page-title">
+                <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
+                <h1>Shipment Planner</h1>
+            </div>
+        </div>
+
+        <!-- CONTROLS & CONFIG -->
+        <div class="card">
+            <div class="grid-2">
+                <div>
+                    <label>Select Client</label>
+                    <div style="display: flex; gap: 8px;">
+                        <select id="clientSelect">
+                            <option value="">-- Choose Client --</option>
+                            {% for client in clients %}
+                            <option value="{{ client['name'] }}" data-client-id="{{ client['id'] }}">{{ client['name']
+                                }}</option>
+                            {% endfor %}
+                        </select>
+                        <button onclick="addNewClient()" class="btn btn-primary"
+                            style="padding: 8px 15px; white-space: nowrap; font-size: 13px;">Add Client</button>
+                        <button onclick="deleteClient()" class="btn btn-danger"
+                            style="padding: 8px 15px; white-space: nowrap; font-size: 13px;">Delete Client</button>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        <label>Container Name / ID</label>
+                        <input type="text" id="containerName" placeholder="Enter Container Number">
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <label>Total Expense (Before Shipment)</label>
+                        <input type="number" id="totalExpense" step="0.01" placeholder="0.00"
+                            oninput="calculateTotals()">
+                    </div>
+                </div>
+
+                <div>
+                    <label>Container Type</label>
+                    <div
+                        style="display: flex; gap: 20px; background: #fafafa; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                        <label
+                            style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0; color: var(--text-primary);">
+                            <input type="radio" name="containerType" value="1180" checked onchange="calculateTotals()"
+                                style="width: auto;">
+                            20 FT (1180)
+                        </label>
+                        <label
+                            style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0; color: var(--text-primary);">
+                            <input type="radio" name="containerType" value="2359" onchange="calculateTotals()"
+                                style="width: auto;">
+                            40 FT (2359)
+                        </label>
+                    </div>
+
+                    <label style="margin-top: 20px;">Search Product to Add</label>
+                    <div style="position: relative; display: flex; gap: 10px;">
+                        <div style="position: relative; flex-grow: 1;">
+                            <input type="text" id="productSearch" placeholder="Type to search..." autocomplete="off"
+                                onkeyup="filterFunction()">
+                            <div id="searchResults" class="search-results"
+                                style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; max-height: 200px; overflow-y: auto; z-index: 999; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                            </div>
+                        </div>
+                        <button onclick="addProductFromSearch()" class="btn btn-primary">Add</button>
+                    </div>
+
+
+                </div>
+            </div>
+        </div>
+
+        <!-- STATS OVERVIEW -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <p>Total Volume</p>
+                <h2 id="total-vol">0.00 <span style="font-size:16px; opacity: 0.7;">Cu.Ft</span></h2>
+            </div>
+            <div class="stat-card">
+                <p>Total Cases</p>
+                <h2 id="total-cases">0</h2>
+            </div>
+            <div class="stat-card">
+                <p>Gross Weight</p>
+                <h2 id="total-weight">0.00 <span style="font-size:16px; opacity: 0.7;">Kg</span></h2>
+            </div>
+        </div>
+
+        <!-- CHARTS -->
+        <div class="grid-2" style="margin-bottom: 25px;">
+            <div class="card"
+                style="min-height: 350px; padding-bottom: 20px; display: flex; flex-direction: column; align-items: center;">
+                <p style="text-align: center; font-weight: 600; color: var(--text-secondary);">Volume Utilization</p>
+                <div style="flex-grow: 1; width: 100%; position: relative;">
+                    <canvas id="volChart"></canvas>
+                    <div id="volPercent"
+                        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 28px; font-weight: 800; color: var(--text-primary);">
+                        0%</div>
+                </div>
+            </div>
+            <div class="card"
+                style="min-height: 350px; padding-bottom: 20px; display: flex; flex-direction: column; align-items: center;">
+                <p style="text-align: center; font-weight: 600; color: var(--text-secondary);">Weight Utilization</p>
+                <div style="flex-grow: 1; width: 100%; position: relative;">
+                    <canvas id="wtChart"></canvas>
+                    <div id="wtPercent"
+                        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 28px; font-weight: 800; color: var(--text-primary);">
+                        0%</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="height: 200px;">
+            <p style="font-weight: 600; color: var(--text-secondary); margin-bottom: 10px;">Cargo Composition (By
+                Volume)</p>
+            <div style="height: 120px; width: 100%;"><canvas id="compChart"></canvas></div>
+        </div>
+
+        <!-- ACTIVE ITEMS TABLE -->
+        <div class="card">
+            <div class="table-container">
+                <table id="shipmentTable">
+                    <thead>
+                        <tr>
+                            <th style="padding-left: 20px;">Product</th>
+                            <th style="width: 80px;">Pack</th>
+                            <th style="width: 100px;">Vol/Case</th>
+                            <th style="color: var(--accent-primary);">Cost/Box</th>
+                            <th style="color: var(--accent-primary);">Cost/Unit</th>
+                            <th style="width: 80px;">QTY</th>
+                            <th style="width: 120px;">Total Vol</th>
+                            <th style="width: 60px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px; text-align: right; margin-bottom: 40px;">
+            <button id="saveBtn" onclick="saveContainer()" class="btn btn-primary"
+                style="padding: 12px 25px; font-size: 16px;">Save Container Configuration</button>
+            <button id="cancelEditBtn" onclick="cancelEdit()" class="btn btn-danger"
+                style="display:none; margin-left: 10px; padding: 12px 25px; font-size: 16px;">Cancel Edit</button>
+        </div>
+
+        <h2 style="margin: 40px 0 20px 0; color: var(--accent-primary);">Saved Configurations</h2>
+        <div class="card">
+            <div class="table-container">
+                <table id="historyTable">
+                    <thead>
+                        <tr>
+                            <th class="sortable" onclick="sortTable(0)">Date <span id="sort-icon-0">▼</span></th>
+                            <th class="sortable" onclick="sortTable(1)">Container <span id="sort-icon-1">▼</span></th>
+                            <th>Client</th>
+                            <th>Type</th>
+                            <th>Tot Vol</th>
+                            <th>Tot Wt</th>
+                            <th>Expense</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ship in shipments %}
+                        <tr>
+                            <td class="text-muted">{{ ship['created_at'] }}</td>
+                            <td style="font-weight: 600;">{{ ship['container_name'] }}</td>
+                            <td>{{ ship['client_name'] }}</td>
+                            <td><span class="badge" style="background: #eee;">{{ ship['container_type'] }} FT</span>
+                            </td>
+                            <td class="text-accent">{{ "%.2f"|format(ship['total_vol']) }}</td>
+                            <td>{{ "%.2f"|format(ship['total_weight']) }}</td>
+                            <td style="color: #e67e22;">{{ "%.2f"|format(ship['total_expense'] if ship['total_expense']
+                                else 0) }}</td>
+                            <td style="display: flex; gap: 5px;">
+                                <button data-id="{{ ship['id'] }}" onclick="editShipment(this.dataset.id)"
+                                    class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">Edit</button>
+                                <button data-id="{{ ship['id'] }}" onclick="deleteShipment(this.dataset.id)"
+                                    class="btn btn-danger"
+                                    style="padding: 5px 10px; font-size: 12px; white-space: nowrap;">Delete</button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-muted" style="text-align: center; padding: 30px;">No containers
+                                prepared yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ADD CLIENT MODAL -->
+    <div class="modal-overlay" id="addClientModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Client</h3>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="newClientName" placeholder="Enter client name..." autocomplete="off">
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeClientModal()" class="btn btn-secondary">Cancel</button>
+                <button onclick="saveNewClient()" class="btn btn-primary">Add Client</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DELETE CLIENT MODAL -->
+    <div class="modal-overlay" id="deleteClientModal">
+        <div class="modal-content" style="width: 350px;">
+            <div class="modal-header">
+                <h3 style="color: #D32F2F;">Delete Client?</h3>
+            </div>
+            <div class="modal-body">
+                <p id="deleteClientMsg" style="text-align: center; color: var(--text-secondary); margin-bottom: 20px;">
+                    Are you sure you want to delete this client?
+                </p>
+                <input type="hidden" id="deleteClientId">
+            </div>
+            <div class="modal-footer" style="justify-content: center;">
+                <button onclick="closeDeleteModal()" class="btn btn-secondary">Cancel</button>
+                <button onclick="confirmDeleteClient()" class="btn btn-primary"
+                    style="background-color: #D32F2F; border-color: #D32F2F;">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- VARIABLES ---
+        let volChartInstance = null;
+        let wtChartInstance = null;
+        let compChartInstance = null;
+        let currentEditingId = null;
+        window.currentStats = { totalVol: 0, totalCases: 0, totalWeight: 0 };
+
+        const allProducts = JSON.parse('{{ products_json | safe }}');
+
+        // --- CLIENT MODAL FUNC ---
+        function addNewClient() {
+            document.getElementById('addClientModal').style.display = 'flex';
+            document.getElementById('newClientName').value = '';
+            document.getElementById('newClientName').focus();
+        }
+
+        function closeClientModal() {
+            document.getElementById('addClientModal').style.display = 'none';
+        }
+
+        function saveNewClient() {
+            let nameInput = document.getElementById('newClientName');
+            let name = nameInput.value.trim();
+            if (!name) { alert("Name cannot be empty"); return; }
+
+            fetch('/api/add_client', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name }) }).then(res => res.json()).then(data => {
+                if (data.success) {
+                    let select = document.getElementById('clientSelect');
+                    let option = document.createElement("option");
+                    option.text = data.name; option.value = data.name;
+                    option.setAttribute('data-client-id', data.id);
+                    option.selected = true;
+                    select.add(option);
+                    closeClientModal();
+                } else { alert("Error: " + data.error); }
+            });
+        }
+
+        // Close modal on outside click
+        document.getElementById('addClientModal').addEventListener('click', function (e) {
+            if (e.target === this) closeClientModal();
+        });
+
+        // Enter key support
+        document.getElementById('newClientName').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') saveNewClient();
+        });
+
+        // --- SIDEBAR TOGGLE ---
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+
+            // Resize charts after transition
+            setTimeout(() => {
+                if (volChartInstance) volChartInstance.resize();
+                if (wtChartInstance) wtChartInstance.resize();
+                if (compChartInstance) compChartInstance.resize();
+            }, 300);
+        }
+
+        // --- SEARCH LOGIC ---
+        function filterFunction() {
+            const input = document.getElementById("productSearch");
+            const filter = input.value.toUpperCase();
+            const keywords = filter.split(" ").filter(k => k.length > 0); // Split by space
+            const div = document.getElementById("searchResults");
+            div.innerHTML = "";
+
+            if (filter.length === 0) { div.style.display = "none"; return; }
+
+            let matchCount = 0;
+            allProducts.forEach(p => {
+                const productName = p.name.toUpperCase();
+                // Check if ALL keywords are present in the product name
+                const isMatch = keywords.every(keyword => productName.indexOf(keyword) > -1);
+
+                if (isMatch) {
+                    let item = document.createElement("div");
+                    item.style.padding = "10px";
+                    item.style.cursor = "pointer";
+                    item.style.borderBottom = "1px solid #eee";
+                    item.innerText = p.name;
+                    item.onmouseover = function () { this.style.backgroundColor = "#f0f0f0"; };
+                    item.onmouseout = function () { this.style.backgroundColor = "transparent"; };
+                    item.onclick = function () { input.value = p.name; div.style.display = "none"; };
+                    div.appendChild(item); matchCount++;
+                }
+            });
+            div.style.display = matchCount > 0 ? "block" : "none";
+        }
+
+        document.addEventListener('click', function (event) {
+            if (event.target.id !== 'productSearch') {
+                document.getElementById("searchResults").style.display = "none";
+            }
+        });
+
+        // --- CHARTS ---
+        window.onload = function () { initCharts(); };
+
+        function initCharts() {
+            // Use new palette colors
+            const colorPrimary = '#84934A';
+            const colorSecondary = '#656D3F';
+            const colorDanger = '#D32F2F';
+            const colorEmpty = '#ECECEC'; // Matches bg
+
+            try {
+                const ctxVol = document.getElementById('volChart').getContext('2d');
+                volChartInstance = new Chart(ctxVol, {
+                    type: 'doughnut',
+                    data: { labels: ['Occupied', 'Free'], datasets: [{ data: [0, 100], backgroundColor: [colorPrimary, colorEmpty], borderWidth: 0 }] },
+                    options: { cutout: '75%', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+
+                const ctxWt = document.getElementById('wtChart').getContext('2d');
+                wtChartInstance = new Chart(ctxWt, {
+                    type: 'doughnut',
+                    data: { labels: ['Load', 'Free'], datasets: [{ data: [0, 100], backgroundColor: [colorSecondary, colorEmpty], borderWidth: 0 }] },
+                    options: { cutout: '75%', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+
+                const ctxComp = document.getElementById('compChart').getContext('2d');
+                compChartInstance = new Chart(ctxComp, {
+                    type: 'bar',
+                    data: { labels: ['Container'], datasets: [] },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { x: { stacked: true, display: false, max: 100 }, y: { stacked: true, display: false } },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            } catch (e) {
+                console.log("Chart init failed (optional):", e);
+            }
+        }
+
+        // --- ADD PRODUCT ---
+        function addProductToTable(productName, quantity = 1) {
+            const product = allProducts.find(p => p.name === productName);
+            if (!product) return false;
+
+            const tbody = document.getElementById('tableBody');
+            const rowId = 'row-' + Date.now() + Math.random().toString(16).slice(2);
+
+            const safeCaseSize = (product.case_size && product.case_size > 0) ? product.case_size : 1;
+
+            const row = `
+            <tr id="${rowId}">
+                <td style="text-align: left; padding-left: 20px;" class="p-name">${product.name}</td>
+                <td>${product.pack_size_gm}g</td>
+                <td>${product.volume_value.toFixed(4)} <input type="hidden" class="vol-val" value="${product.volume_value}"></td>
+                
+                <td class="cost-box-cell" style="color: var(--accent-primary); font-weight: 600;">0.00</td>
+                <td class="cost-pkt-cell" style="color: var(--accent-primary);">0.00</td>
+                
+                <td style="padding: 0;">
+                    <input type="hidden" class="wt-val" value="${product.gross_weight_case}">
+                    <input type="hidden" class="case-size-val" value="${safeCaseSize}">
+                    <input type="number" class="qty-input clean-input" value="${quantity}" min="1" oninput="calculateTotals()" style="width: 100%; border: 1px solid #ddd; padding: 8px 16px; border-radius: 4px;">
+                </td>
+                <td class="row-total-vol" style="font-weight: 600;">${(product.volume_value * quantity).toFixed(4)}</td>
+                <td onclick="removeRow('${rowId}')" class="text-danger" style="cursor: pointer; font-size: 18px; font-weight: bold;">×</td>
+            </tr>
+        `;
+            tbody.insertAdjacentHTML('beforeend', row);
+            calculateTotals();
+            return true;
+        }
+
+        function addProductFromSearch() {
+            const input = document.getElementById('productSearch');
+            if (addProductToTable(input.value)) { input.value = ""; } else { alert("Product not found."); }
+        }
+        function removeRow(rowId) { document.getElementById(rowId).remove(); calculateTotals(); }
+
+        // --- MAIN CALCULATION ---
+        function calculateTotals() {
+            let totalVol = 0; let totalCases = 0; let totalWeight = 0; let productComposition = {};
+
+            const totalExpense = parseFloat(document.getElementById('totalExpense').value) || 0;
+
+            const radio = document.querySelector('input[name="containerType"]:checked');
+            const containerCapacity = radio ? parseFloat(radio.value) : 1180;
+            const weightLimit = 26000;
+
+            document.querySelectorAll('#tableBody tr').forEach(row => {
+                const name = row.querySelector('.p-name').innerText;
+                const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+                const volPerBox = parseFloat(row.querySelector('.vol-val').value) || 0;
+                const wtPerBox = parseFloat(row.querySelector('.wt-val').value) || 0;
+                const caseSize = parseFloat(row.querySelector('.case-size-val').value) || 1;
+
+                const rowTotalVol = volPerBox * qty;
+                row.querySelector('.row-total-vol').innerText = rowTotalVol.toFixed(4);
+
+                let costPerBox = 0;
+                if (containerCapacity > 0) {
+                    costPerBox = (totalExpense / containerCapacity) * volPerBox;
+                }
+                const costPerPacket = costPerBox / caseSize;
+
+                row.querySelector('.cost-box-cell').innerText = costPerBox.toFixed(2);
+                row.querySelector('.cost-pkt-cell').innerText = costPerPacket.toFixed(2);
+
+                totalVol += rowTotalVol; totalWeight += (wtPerBox * qty); totalCases += qty;
+                productComposition[name] = (productComposition[name] || 0) + rowTotalVol;
+            });
+
+            window.currentStats = { totalVol, totalCases, totalWeight };
+            document.getElementById('total-vol').innerText = totalVol.toFixed(2) + " Cu.Ft";
+            document.getElementById('total-cases').innerText = totalCases;
+            document.getElementById('total-weight').innerHTML = `${totalWeight.toFixed(2)} <span style="font-size:16px; opacity: 0.7;">Kg</span> <span style="font-size:14px; opacity: 0.5;">/ ${(totalWeight / 1000).toFixed(3)} Tons</span>`;
+
+            if (volChartInstance) {
+                updateCharts(totalVol, containerCapacity, totalWeight, weightLimit, productComposition);
+            }
+        }
+
+        function updateCharts(vol, volLimit, wt, wtLimit, composition) {
+            if (!volChartInstance || !wtChartInstance || !compChartInstance) return;
+
+            const colorPrimary = '#84934A';
+            const colorDanger = '#D32F2F';
+            const colorWarning = '#FBC02D'; // Warning Yellow/Orange
+            const colorSecondary = '#656D3F';
+            const colorEmpty = '#ECECEC';
+
+            // Volume Chart Logic
+            let volColor = colorPrimary;
+            if (vol > volLimit) volColor = colorDanger;
+            else if (volLimit - vol <= (volLimit * 0.1)) volColor = colorWarning;
+
+            let volPct = (vol / volLimit) * 100;
+            document.getElementById('volPercent').innerText = volPct.toFixed(1) + "%";
+            volChartInstance.data.datasets[0].data = [vol, Math.max(0, volLimit - vol)];
+            volChartInstance.data.datasets[0].backgroundColor = [volColor, colorEmpty];
+            volChartInstance.update();
+
+            // Weight Chart Logic
+            let wtColor = colorSecondary;
+            if (wt > wtLimit) wtColor = colorDanger;
+            else if (wtLimit - wt <= 2000) wtColor = colorWarning;
+
+            let wtPct = (wt / wtLimit) * 100;
+            document.getElementById('wtPercent').innerText = wtPct.toFixed(1) + "%";
+            let freeWt = Math.max(0, wtLimit - wt);
+
+            wtChartInstance.data.labels = [`Load: ${wt.toFixed(2)} Kg`, `Free: ${freeWt.toFixed(2)} Kg`];
+            wtChartInstance.data.datasets[0].data = [wt, freeWt];
+            wtChartInstance.data.datasets[0].backgroundColor = [wtColor, colorEmpty];
+            wtChartInstance.update();
+
+            // Varied greens/browns for composition
+            const colors = ['#84934A', '#656D3F', '#492828', '#A09090', '#555555', '#D4E157', '#9E9D24'];
+            let datasets = []; let colorIdx = 0; let totalCompVol = 0;
+            for (let key in composition) totalCompVol += composition[key];
+            for (let key in composition) {
+                let pct = (composition[key] / volLimit) * 100;
+                datasets.push({ label: key, data: [pct], backgroundColor: colors[colorIdx % colors.length] });
+                colorIdx++;
+            }
+            let emptySpace = Math.max(0, 100 - (totalCompVol / volLimit) * 100);
+            datasets.push({ label: "Free Space", data: [emptySpace], backgroundColor: "transparent" });
+            compChartInstance.data.datasets = datasets; compChartInstance.update();
+        }
+
+        // --- SAVE / EDIT / DELETE ---
+        function editShipment(id) {
+            fetch('/api/get_shipment/' + id).then(res => res.json()).then(data => {
+                if (data.success) {
+                    currentEditingId = id;
+                    document.getElementById('containerName').value = data.shipment.container_name;
+                    document.getElementById('clientSelect').value = data.shipment.client_name;
+                    document.getElementById('totalExpense').value = data.shipment.total_expense || 0;
+
+                    const radios = document.getElementsByName('containerType');
+                    const targetVal = data.shipment.container_type === 20 ? "1180" : "2359";
+                    for (let r of radios) { if (r.value === targetVal) r.checked = true; }
+
+                    document.getElementById('tableBody').innerHTML = "";
+                    data.items.forEach(item => { addProductToTable(item.product_name, item.quantity); });
+
+                    const saveBtn = document.getElementById('saveBtn');
+                    saveBtn.innerText = "Update Container Configuration";
+                    saveBtn.classList.remove('btn-primary');
+                    saveBtn.style.backgroundColor = "#FBC02D";
+                    saveBtn.style.color = "black";
+
+                    document.getElementById('cancelEditBtn').style.display = "inline-block";
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                    setTimeout(calculateTotals, 100);
+                }
+            });
+        }
+
+        function deleteShipment(id) {
+            if (confirm("Are you sure you want to delete this shipment?")) {
+                fetch('/api/delete_shipment', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) })
+                    .then(res => res.json()).then(data => { if (data.success) location.reload(); });
+            }
+        }
+
+        function cancelEdit() { location.reload(); }
+
+        function saveContainer() {
+            const clientSelect = document.getElementById('clientSelect');
+            const containerName = document.getElementById('containerName').value;
+
+            const radio = document.querySelector('input[name="containerType"]:checked');
+            const containerLimit = radio ? parseFloat(radio.value) : 1180;
+            const containerType = containerLimit === 1180 ? 20 : 40;
+
+            const totalExpense = parseFloat(document.getElementById('totalExpense').value) || 0;
+
+            if (!containerName) { alert("Please enter a Container Name."); return; }
+            if (!window.currentStats || window.currentStats.totalCases === 0) { alert("Container is empty!"); return; }
+
+            let items = [];
+            document.querySelectorAll('#tableBody tr').forEach(row => {
+                items.push({
+                    name: row.querySelector('.p-name').innerText,
+                    qty: parseInt(row.querySelector('.qty-input').value)
+                });
+            });
+
+            const payload = { container_name: containerName, client_name: clientSelect.value, container_type: containerType, total_vol: window.currentStats.totalVol, total_weight: window.currentStats.totalWeight, total_cases: window.currentStats.totalCases, total_expense: totalExpense, items: items, shipment_id: currentEditingId };
+
+            const url = currentEditingId ? '/api/update_container' : '/api/save_container';
+            fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(res => res.json()).then(data => {
+                if (data.success) { alert(currentEditingId ? "Updated!" : "Saved!"); location.reload(); }
+                else { alert("Error saving."); }
+            });
+        }
+
+
+
+        // --- DELETE CLIENT MODAL ---
+        function deleteClient() {
+            let sel = document.getElementById('clientSelect');
+            let selectedOption = sel.options[sel.selectedIndex];
+            let clientId = selectedOption.getAttribute('data-client-id');
+
+            if (!clientId) { alert("Please select a client to delete."); return; }
+
+            document.getElementById('deleteClientMsg').innerText = `Permanently delete "${sel.value}"?`;
+            document.getElementById('deleteClientId').value = clientId;
+            document.getElementById('deleteClientModal').style.display = 'flex';
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteClientModal').style.display = 'none';
+        }
+
+        function confirmDeleteClient() {
+            let clientId = document.getElementById('deleteClientId').value;
+            if (clientId) {
+                fetch('/api/delete_client', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: clientId })
+                }).then(res => res.json()).then(data => {
+                    if (data.success) { location.reload(); }
+                    else { alert("Error deleting client."); }
+                });
+            }
+        }
+
+        // Close modal on outside click
+        document.getElementById('deleteClientModal').addEventListener('click', function (e) { if (e.target === this) closeDeleteModal(); });
+
+        function sortTable(n) {
+            // Reset icons to default state
+            document.getElementById('sort-icon-0').innerText = '▼';
+            document.getElementById('sort-icon-1').innerText = '▼';
+
+            var table = document.getElementById("historyTable"), rows, switching = true, i, x, y, shouldSwitch, dir = "asc", switchcount = 0;
+
+            // Assume ASC first
+            document.getElementById('sort-icon-' + n).innerText = '▲';
+
+            while (switching) {
+                switching = false; rows = table.rows;
+                for (i = 1; i < (rows.length - 1); i++) {
+                    shouldSwitch = false; x = rows[i].getElementsByTagName("TD")[n]; y = rows[i + 1].getElementsByTagName("TD")[n];
+                    if (dir == "asc") { if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) { shouldSwitch = true; break; } }
+                    else if (dir == "desc") { if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) { shouldSwitch = true; break; } }
+                }
+                if (shouldSwitch) { rows[i].parentNode.insertBefore(rows[i + 1], rows[i]); switching = true; switchcount++; }
+                else {
+                    if (switchcount == 0 && dir == "asc") {
+                        dir = "desc"; switching = true;
+                        document.getElementById('sort-icon-' + n).innerText = '▼';
+                    }
+                }
+            }
+        }
+    </script>
+
+</body>
+
+</html>
