@@ -100,9 +100,44 @@ def init_db():
                 company_name TEXT NOT NULL,
                 email TEXT NOT NULL UNIQUE,
                 password_hash TEXT NOT NULL,
-                reset_token TEXT
+                reset_token TEXT,
+                role TEXT DEFAULT 'user',
+                access_inventory INTEGER DEFAULT 1,
+                access_calculator INTEGER DEFAULT 1
             )
         ''')
+        
+        # 5. AUTO-MIGRATION: Add new columns to 'users' if they don't exist
+        try:
+            db.execute("SELECT role FROM users LIMIT 1")
+        except sqlite3.OperationalError:
+            print("⚠️ Updating Database: Adding missing 'role' and permission columns to users...")
+            db.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'")
+            db.execute("ALTER TABLE users ADD COLUMN access_inventory INTEGER DEFAULT 1")
+            db.execute("ALTER TABLE users ADD COLUMN access_calculator INTEGER DEFAULT 1")
+            db.commit()
+            print("✅ Users Table Updated Successfully!")
+
+        # 6. Create Default Admin User
+        # Logic: Check for 'admin@gmail.com'. If not found, check for old 'Shubham' and rename it. If neither, create new.
+        
+        target_email = "admin@gmail.com"
+        
+        # Check if old admin exists and migrate
+        old_admin = db.execute("SELECT * FROM users WHERE email = 'Shubham'").fetchone()
+        if old_admin:
+            print("⚠️ Migrating Admin User 'Shubham' to 'admin@gmail.com'...")
+            db.execute("UPDATE users SET email = ? WHERE id = ?", (target_email, old_admin['id']))
+            db.commit()
+        
+        # Ensure Admin Exists
+        admin = db.execute("SELECT * FROM users WHERE email = ?", (target_email,)).fetchone()
+        if not admin:
+            hashed_pw = generate_password_hash("Shubham1901")
+            db.execute("INSERT INTO users (company_name, email, password_hash, role, access_inventory, access_calculator) VALUES (?, ?, ?, ?, ?, ?)",
+                       ("Admin", target_email, hashed_pw, "admin", 1, 1))
+            db.commit()
+            print(f"✅ Admin User '{target_email}' Created/Verified.")
 
         db.commit()
 
@@ -115,6 +150,29 @@ def login_required(f):
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
             return redirect(url_for('login'))
+        
+        # Check if user has permission for the requested endpoint
+        if request.endpoint == 'index' and not g.user['access_inventory']:
+             if g.user['access_calculator']:
+                 return redirect(url_for('calculator'))
+             flash("You do not have access to Inventory.", "error")
+             return redirect(url_for('logout'))
+             
+        if request.endpoint == 'calculator' and not g.user['access_calculator']:
+             if g.user['access_inventory']:
+                 return redirect(url_for('index'))
+             flash("You do not have access to Calculator.", "error")
+             return redirect(url_for('index')) # Will cascade to logout check above if stuck
+
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session or g.user['role'] != 'admin':
+            flash("Admin access required.", "error")
+            return redirect(url_for('index'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -125,21 +183,43 @@ def load_logged_in_user():
         g.user = None
     else:
         g.user = get_db().execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+        
+        # If user was deleted but session exists, clear session
+        if g.user is None:
+            session.clear()
 
 # --- AUTH ROUTES ---
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form.get('email')
+        email = request.form.get('email').strip() if request.form.get('email') else ''
         password = request.form.get('password')
         db = get_db()
+        # Login by Email ONLY (Company Name is no longer unique)
         user = db.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
         
         if user and check_password_hash(user['password_hash'], password):
             session.clear()
             session['user_id'] = user['id']
-            return redirect(url_for('index'))
+            
+            # Smart Redirect based on permissions
+            role = user['role']
+            has_inv = bool(user['access_inventory'])
+            has_calc = bool(user['access_calculator'])
+
+            if role == 'admin':
+                return redirect(url_for('admin_dashboard'))
+            elif has_inv:
+                return redirect(url_for('index'))
+            elif has_calc:
+                return redirect(url_for('calculator'))
+            else:
+                flash("Your account has no active module access. Please contact Admin.", "error")
+                session.clear()
+                return redirect(url_for('login'))
+                session.clear()
+                return redirect(url_for('login'))
         
         flash('Invalid email or password', 'error')
         
@@ -147,7 +227,7 @@ def login():
 
 @app.route('/signup', methods=['POST'])
 def signup():
-    company_name = request.form.get('company_name')
+    company_name = "NEEM IMPEX"
     email = request.form.get('email')
     password = request.form.get('password')
     confirm_password = request.form.get('confirm_password')
@@ -212,7 +292,60 @@ def reset_password(token):
         flash('Password reset successful! Please login.', 'success')
         return redirect(url_for('login'))
         
+        flash('Invalid or expired token', 'error')
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        password = request.form.get('password')
+        hashed_pw = generate_password_hash(password)
+        db.execute("UPDATE users SET password_hash = ?, reset_token = NULL WHERE id = ?", (hashed_pw, user['id']))
+        db.commit()
+        flash('Password reset successful! Please login.', 'success')
+        return redirect(url_for('login'))
+        
     return render_template('login.html', reset_token=token) # Reuse login template for reset UI if possible, or create simple one
+
+# --- ADMIN ROUTES ---
+
+@app.route('/admin')
+@admin_required
+def admin_dashboard():
+    db = get_db()
+    users = db.execute("SELECT * FROM users WHERE role != 'admin' ORDER BY id DESC").fetchall()
+    return render_template('admin.html', users=users)
+
+@app.route('/admin/update_permissions', methods=['POST'])
+@admin_required
+def update_permissions():
+    user_id = request.form.get('user_id')
+    access_inventory = 1 if request.form.get('access_inventory') else 0
+    access_calculator = 1 if request.form.get('access_calculator') else 0
+    
+    db = get_db()
+    db.execute("UPDATE users SET access_inventory = ?, access_calculator = ? WHERE id = ?", 
+               (access_inventory, access_calculator, user_id))
+    db.commit()
+    
+    flash("Permissions updated successfully.", "success")
+    return redirect(url_for('admin_dashboard'))
+
+# Route for deleting users
+@app.route('/admin/delete_user', methods=['POST'])
+@admin_required
+def delete_user():
+    user_id = request.form.get('user_id')
+    db = get_db()
+    
+    # Prevent deleting self (just in case)
+    if int(user_id) == session.get('user_id'):
+       flash("Cannot delete your own admin account.", "error")
+       return redirect(url_for('admin_dashboard'))
+
+    db.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    db.commit()
+    
+    flash("User deleted successfully.", "success")
+    return redirect(url_for('admin_dashboard'))
 
 
 # --- ROUTES ---

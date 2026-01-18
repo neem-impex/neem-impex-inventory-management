@@ -741,6 +741,55 @@ td input.text-left {
     /* Prevent slide for this specific button */
 }
 
+/* --- ROLE TOGGLE --- */
+.role-toggle-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 25px;
+}
+
+.role-toggle {
+    background: #F0F2F5;
+    border-radius: 30px;
+    padding: 4px;
+    display: flex;
+    position: relative;
+    width: 200px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.toggle-bg {
+    position: absolute;
+    top: 4px;
+    left: 5px;
+    /* Start at user position */
+    width: calc(50% - 4px);
+    height: calc(100% - 8px);
+    background: white;
+    border-radius: 25px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toggle-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 8px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    z-index: 1;
+    transition: color 0.3s;
+    text-align: center;
+}
+
+.toggle-btn.active {
+    color: var(--accent-primary);
+}
+
+
 /* --- ANIMATED BACKGROUND --- */
 .animated-bg {
     position: absolute;
@@ -860,4 +909,44 @@ td input.text-left {
     100% {
         transform: translate(0, 0) rotate(0deg);
     }
+}
+
+/* --- PASSWORD TOGGLE --- */
+.password-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.password-toggle-icon {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    z-index: 10;
+    width: 20px;
+    height: 20px;
+    background: transparent;
+    border: none;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    transition: all 0.2s ease;
+}
+
+.password-toggle-icon svg {
+    stroke: var(--accent-primary);
+    /* Theme Color */
+    transition: all 0.2s ease;
+}
+
+.password-toggle-icon:hover svg {
+    color: var(--accent-secondary);
+    transform: scale(1.1);
+}
+
+.password-toggle-icon:hover {
+    transform: translateY(-50%) scale(1.1);
 }
