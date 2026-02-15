@@ -18,29 +18,59 @@
         <div style="padding: 10px;">
             <h1 style="color: white; font-size: 24px; font-weight: bold; margin-bottom: 5px;">{{ g.user['company_name']
                 if g.user else 'NEEM IMPEX' }}</h1>
-            <p style="color: var(--accent-primary); font-size: 12px; margin-top: 0; letter-spacing: 2px;">INVENTORY</p>
+            <p style="color: var(--accent-primary); font-size: 12px; margin-top: 0; letter-spacing: 2px;">PRODUCT LIST
+            </p>
         </div>
 
         <nav class="sidebar-nav">
             {% if g.user['access_inventory'] %}
             <a href="/" class="active">
-                <span>📦</span> <span style="margin-left: 10px;">Inventory</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path
+                        d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+                    </path>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                </svg>
+                <span style="margin-left: 10px;">Product List</span>
             </a>
             {% endif %}
 
             {% if g.user['access_calculator'] %}
             <a href="/calculator">
-                <span>🧮</span> <span style="margin-left: 10px;">CBM Calculator</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+                    <line x1="8" y1="6" x2="16" y2="6"></line>
+                    <line x1="16" y1="14" x2="16" y2="14"></line>
+                    <line x1="8" y1="14" x2="8" y2="14"></line>
+                    <line x1="12" y1="14" x2="12" y2="14"></line>
+                    <line x1="16" y1="18" x2="16" y2="18"></line>
+                    <line x1="8" y1="18" x2="8" y2="18"></line>
+                    <line x1="12" y1="18" x2="12" y2="18"></line>
+                </svg>
+                <span style="margin-left: 10px;">CBM Calculator</span>
             </a>
             {% endif %}
 
             {% if g.user['role'] == 'admin' %}
             <a href="/admin" style="color: var(--accent-primary);">
-                <span>🛡️</span> <span style="margin-left: 10px;">Admin Panel</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span style="margin-left: 10px;">Admin Panel</span>
             </a>
             {% endif %}
             <a href="#" class="logout-link" onclick="confirmLogout(event)">
-                <span style="margin-left: 0;">Sign Out</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                <span style="margin-left: 10px;">Sign Out</span>
             </a>
         </nav>
     </div>
@@ -50,7 +80,7 @@
         <div class="top-header">
             <div class="page-title">
                 <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
-                <h1>Inventory Management</h1>
+                <h1>Product List</h1>
             </div>
 
             <div class="card"

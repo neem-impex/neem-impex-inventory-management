@@ -25,23 +25,52 @@
         <nav class="sidebar-nav">
             {% if g.user['access_inventory'] %}
             <a href="/">
-                <span>📦</span> <span style="margin-left: 10px;">Inventory</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path
+                        d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+                    </path>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                </svg>
+                <span style="margin-left: 10px;">Product List</span>
             </a>
             {% endif %}
 
             {% if g.user['access_calculator'] %}
             <a href="/calculator" class="active">
-                <span>🧮</span> <span style="margin-left: 10px;">CBM Calculator</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+                    <line x1="8" y1="6" x2="16" y2="6"></line>
+                    <line x1="16" y1="14" x2="16" y2="14"></line>
+                    <line x1="8" y1="14" x2="8" y2="14"></line>
+                    <line x1="12" y1="14" x2="12" y2="14"></line>
+                    <line x1="16" y1="18" x2="16" y2="18"></line>
+                    <line x1="8" y1="18" x2="8" y2="18"></line>
+                    <line x1="12" y1="18" x2="12" y2="18"></line>
+                </svg>
+                <span style="margin-left: 10px;">CBM Calculator</span>
             </a>
             {% endif %}
 
             {% if g.user['role'] == 'admin' %}
             <a href="/admin" style="color: var(--accent-primary);">
-                <span>🛡️</span> <span style="margin-left: 10px;">Admin Panel</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span style="margin-left: 10px;">Admin Panel</span>
             </a>
             {% endif %}
             <a href="#" class="logout-link" onclick="confirmLogout(event)">
-                <span style="margin-left: 0;">Sign Out</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                <span style="margin-left: 10px;">Sign Out</span>
             </a>
         </nav>
     </div>
@@ -117,6 +146,78 @@
 
 
                 </div>
+            </div>
+        </div>
+
+
+        <!-- NEW INVENTORY TABLE SECTION -->
+        <h2 style="margin: 40px 0 20px 0; color: var(--accent-primary);">Inventory Selection</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <button onclick="addSelectedToShipment()" class="btn btn-primary" style="padding: 10px 20px;">+ Add
+                    Selected
+                    to Shipment</button>
+            </div>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <input type="text" id="inventorySearch" onkeyup="filterInventoryTable()"
+                    placeholder="Search Inventory..."
+                    style="padding: 10px; border-radius: 6px; border: 1px solid #ddd; width: 250px;">
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 40px;">
+            <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                <table id="inventoryTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="selectAllInventory"
+                                    onclick="toggleSelectAllInventory(this)"></th>
+                            <th style="width: 50px;">Image</th>
+                            <th style="width: 120px;">Product ID</th>
+                            <th>Product Name</th>
+                            <th>Category</th>
+                            <th>Pack (Gm)</th>
+                            <th>Case Size</th>
+                            <th>Gross Wt</th>
+                            <th>Dimensions (L x W x H)</th>
+                            <th>Vol (Cu.Ft)</th>
+                            <th>Net Wt</th>
+                            <th style="width: 60px;">Edit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in products %}
+                        <tr>
+                            <td><input type="checkbox" class="inventory-checkbox" value="{{ product['name'] }}"></td>
+                            <td>
+                                {% if product['image_path'] %}
+                                <img src="{{ url_for('static', filename='uploads/' + product['image_path']) }}"
+                                    class="table-thumb"
+                                    style="width: 30px; height: 30px; border-radius: 4px; object-fit: cover;">
+                                {% else %}
+                                <span style="opacity: 0.3;">📦</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-muted" style="font-weight: 500; font-size: 13px;">NI-{{ "%03d" |
+                                format(product['id']) }}-{{ product['category'] }}</td>
+                            <td style="font-weight: 500;" class="p-name">{{ product['name'] }}</td>
+                            <td>{{ product['category'] or '-' }}</td>
+                            <td>{{ product['pack_size_gm'] }}</td>
+                            <td>{{ product['case_size'] }}</td>
+                            <td>{{ product['gross_weight_case'] }}</td>
+                            <td class="text-muted" style="font-size: 13px;">{{ product['case_len_inch'] }} x {{
+                                product['case_width_inch'] }} x {{ product['case_height_inch'] }}</td>
+                            <td class="text-muted">{{ "%.4f"|format(product['volume_value']) }}</td>
+                            <td class="text-muted">{{ "%.2f"|format(product['net_weight_case']) }}</td>
+                            <td>
+                                <button type="button" class="btn btn-secondary" style="padding: 5px 10px;"
+                                    data-product='{{ product | tojson | safe }}'
+                                    onclick="openEditModalFromData(this)">✏️</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -279,6 +380,47 @@
         </div>
     </div>
 
+
+    <!-- EDIT PRODUCT MODAL (Copied from Index) -->
+    <div class="modal-overlay" id="editProductModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;">
+        <div class="modal-content"
+            style="background: white; padding: 25px; border-radius: 12px; width: 500px; max-width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <div class="modal-header"
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin: 0; color: var(--accent-primary);">Edit Product</h3>
+                <span onclick="closeEditModal()" style="cursor: pointer; font-size: 24px;">&times;</span>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editId">
+                <div style="margin-bottom: 15px;">
+                    <label>Product Name</label>
+                    <input type="text" id="editName" class="clean-input"
+                        style="width: 100%; border: 1px solid #ddd; padding: 8px;">
+                </div>
+                <div class="grid-2"
+                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div><label>Category</label><input type="text" id="editCategory"></div>
+                    <div><label>Pack Size (Gm)</label><input type="number" step="0.01" id="editPackSize"></div>
+                </div>
+                <div class="grid-2"
+                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div><label>Case Size</label><input type="number" id="editCaseSize"></div>
+                    <div><label>Gross Wt (Kg)</label><input type="number" step="0.01" id="editGrossWt"></div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                    <input type="number" step="0.01" id="editL" placeholder="L">
+                    <input type="number" step="0.01" id="editW" placeholder="W">
+                    <input type="number" step="0.01" id="editH" placeholder="H">
+                </div>
+            </div>
+            <div class="modal-footer" style="text-align: right;">
+                <button type="button" onclick="closeEditModal()" class="btn btn-secondary">Cancel</button>
+                <button type="button" onclick="saveProductChanges()" class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
     <!-- LOGOUT CONFIRMATION MODAL -->
     <div id="logoutModal" class="modal-overlay"
         style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;">
@@ -374,6 +516,103 @@
             const logoutModal = document.getElementById('logoutModal');
             if (event.target == logoutModal) {
                 closeLogoutModal();
+            }
+        });
+
+        // --- INVENTORY TABLE LOGIC ---
+
+        function toggleSelectAllInventory(source) {
+            const checkboxes = document.querySelectorAll('.inventory-checkbox');
+            checkboxes.forEach(cb => cb.checked = source.checked);
+        }
+
+        function addSelectedToShipment() {
+            const checkboxes = document.querySelectorAll('.inventory-checkbox:checked');
+            if (checkboxes.length === 0) {
+                alert("Please select at least one product.");
+                return;
+            }
+
+            let addedCount = 0;
+            checkboxes.forEach(cb => {
+                if (addProductToTable(cb.value)) {
+                    addedCount++;
+                    cb.checked = false; // Uncheck after adding
+                }
+            });
+
+            document.getElementById('selectAllInventory').checked = false;
+
+            if (addedCount > 0) {
+                // Scroll to shipment table
+                document.getElementById('shipmentTable').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function filterInventoryTable() {
+            const input = document.getElementById("inventorySearch");
+            const filter = input.value.toUpperCase();
+            const table = document.getElementById("inventoryTable");
+            const tr = table.getElementsByTagName("tr");
+
+            for (let i = 1; i < tr.length; i++) { // Start at 1 to skip header
+                const tdName = tr[i].querySelector(".p-name");
+                if (tdName) {
+                    const txtValue = tdName.textContent || tdName.innerText;
+                    if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                        tr[i].style.display = "";
+                    } else {
+                        tr[i].style.display = "none";
+                    }
+                }
+            }
+        }
+
+        // --- EDIT PRODUCT LOGIC (Copied from Index) ---
+        function openEditModalFromData(btn) {
+            const product = JSON.parse(btn.getAttribute('data-product'));
+            document.getElementById('editId').value = product.id;
+            document.getElementById('editName').value = product.name;
+            document.getElementById('editCategory').value = product.category || '';
+            document.getElementById('editPackSize').value = product.pack_size_gm;
+            document.getElementById('editCaseSize').value = product.case_size;
+            document.getElementById('editGrossWt').value = product.gross_weight_case;
+            document.getElementById('editL').value = product.case_len_inch;
+            document.getElementById('editW').value = product.case_width_inch;
+            document.getElementById('editH').value = product.case_height_inch;
+            document.getElementById('editProductModal').style.display = 'flex';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editProductModal').style.display = 'none';
+        }
+
+        function saveProductChanges() {
+            const payload = {
+                id: document.getElementById('editId').value,
+                name: document.getElementById('editName').value,
+                category: document.getElementById('editCategory').value,
+                pack_size_gm: document.getElementById('editPackSize').value,
+                case_size: document.getElementById('editCaseSize').value,
+                gross_weight_case: document.getElementById('editGrossWt').value,
+                case_len_inch: document.getElementById('editL').value,
+                case_width_inch: document.getElementById('editW').value,
+                case_height_inch: document.getElementById('editH').value
+            };
+
+            fetch('/api/update_product', {
+                method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' }
+            }).then(res => res.json()).then(data => {
+                if (data.success) location.reload();
+                else alert('Error: ' + data.error);
+            });
+        }
+
+        // Close edit modal on outside click
+        window.addEventListener('click', function (event) {
+            const editModal = document.getElementById('editProductModal');
+            if (event.target == editModal) {
+                closeEditModal();
             }
         });
 

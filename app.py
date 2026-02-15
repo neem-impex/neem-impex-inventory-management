@@ -366,7 +366,7 @@ def calculator():
     products_cursor = db.execute("SELECT * FROM products ORDER BY name")
     products_list = [dict(row) for row in products_cursor.fetchall()]
     shipments = db.execute("SELECT * FROM shipments ORDER BY id DESC").fetchall()
-    return render_template('calculator.html', clients=clients, products_json=json.dumps(products_list), shipments=shipments)
+    return render_template('calculator.html', clients=clients, products_json=json.dumps(products_list), shipments=shipments, products=products_list)
 
 # --- BULK IMPORT / EXPORT ROUTES ---
 
