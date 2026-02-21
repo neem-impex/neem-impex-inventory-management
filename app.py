@@ -4,6 +4,9 @@ import os
 import json
 import csv
 import io
+import zipfile
+import shutil
+import tempfile
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 import secrets
@@ -766,7 +769,94 @@ def delete_uploaded_export():
         return jsonify({'success': True})
     return jsonify({'success': False, 'error': 'File not found'})
 
-init_db()  # <--- Move it here, outside the 'if' block
+# --- SYSTEM BACKUP AND RESTORE ROUTES ---
+
+@app.route('/api/backup', methods=['GET'])
+@login_required
+def download_backup():
+    # Only admins should download the full database
+    if g.user['role'] != 'admin':
+        return jsonify({'success': False, 'error': 'Unauthorized access'})
+        
+    memory_file = io.BytesIO()
+    with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+        # Add the database file
+        if os.path.exists(DB_NAME):
+            zf.write(DB_NAME, os.path.basename(DB_NAME))
+            
+        # Add the uploads folder contents
+        if os.path.exists(UPLOAD_FOLDER):
+            for root, dirs, files in os.walk(UPLOAD_FOLDER):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    # Create a relative path so it unzips neatly into static/uploads
+                    arcname = os.path.relpath(file_path, start=os.path.dirname(UPLOAD_FOLDER))
+                    zf.write(file_path, arcname)
+                    
+    memory_file.seek(0)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    return send_file(
+        memory_file,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name=f'neem_impex_backup_{timestamp}.zip'
+    )
+
+@app.route('/api/restore', methods=['POST'])
+@login_required
+def restore_backup():
+    if g.user['role'] != 'admin':
+        return jsonify({'success': False, 'error': 'Unauthorized access'})
+        
+    if 'backup_file' not in request.files:
+        return jsonify({'success': False, 'error': 'No backup file provided'})
+        
+    file = request.files['backup_file']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'No selected file'})
+        
+    if not file.filename.endswith('.zip'):
+        return jsonify({'success': False, 'error': 'Backup must be a .zip file'})
+
+    try:
+        # Create a temporary directory to extract to
+        with tempfile.TemporaryDirectory() as temp_dir:
+            zip_path = os.path.join(temp_dir, 'uploaded_backup.zip')
+            file.save(zip_path)
+            
+            with zipfile.ZipFile(zip_path, 'r') as zf:
+                zf.extractall(temp_dir)
+                
+            # Verify the backup has the minimum required files
+            extracted_db = os.path.join(temp_dir, 'inventory.db')
+            if not os.path.exists(extracted_db):
+                return jsonify({'success': False, 'error': 'Invalid backup format: missing inventory.db'})
+                
+            # Disconnect current database to allow overwriting
+            db = getattr(g, '_database', None)
+            if db is not None:
+                db.close()
+                g._database = None
+                
+            # Overwrite the live database
+            shutil.copy2(extracted_db, DB_NAME)
+            
+            # Overwrite the uploads folder if it exists in the zip
+            extracted_uploads = os.path.join(temp_dir, 'uploads')
+            if os.path.exists(extracted_uploads):
+                if os.path.exists(UPLOAD_FOLDER):
+                    shutil.rmtree(UPLOAD_FOLDER)
+                shutil.copytree(extracted_uploads, UPLOAD_FOLDER)
+                
+        # Reinitialize connection pool and auto-migrations just in case
+        init_db()
+        return jsonify({'success': True})
+        
+    except zipfile.BadZipFile:
+        return jsonify({'success': False, 'error': 'The uploaded file is corrupt or not a valid zip archive'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Restore failed: {str(e)}'})
 
 if __name__ == '__main__':
-    app.run(debug=True, use_reloader=False)
+    init_db()
+    app.run(debug=True)
