@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Export Docs - Neem Impex</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Details Summary Arrow Rotation */
+        details.accordion-group>summary .chevron-icon {
+            transition: transform 0.3s ease;
+            margin-left: auto;
+            color: #888;
+        }
+
+        details.accordion-group[open]>summary .chevron-icon {
+            transform: rotate(180deg);
+        }
+
+        details.accordion-group>summary::-webkit-details-marker {
+            display: none;
+            /* Hide native marker to ensure consistent custom icon */
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- SIDEBAR (Standard) -->
+    <div class="sidebar" id="sidebar">
+        <button class="close-sidebar-btn" onclick="toggleSidebar()">×</button>
+        <div style="padding: 10px;">
+            <h1 style="color: white; font-size: 24px; font-weight: bold; margin-bottom: 5px;">{{ g.user['company_name']
+                if g.user else 'NEEM IMPEX' }}</h1>
+            <p style="color: var(--accent-primary); font-size: 12px; margin-top: 0; letter-spacing: 2px;">EXPORT DOCS
+            </p>
+        </div>
+
+        <nav class="sidebar-nav">
+            {% if g.user['access_inventory'] %}
+            <a href="/">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path
+                        d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+                    </path>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                </svg>
+                <span style="margin-left: 10px;">Product List</span>
+            </a>
+            {% endif %}
+
+            {% if g.user['access_calculator'] %}
+            <a href="/calculator">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+                    <line x1="8" y1="6" x2="16" y2="6"></line>
+                    <line x1="16" y1="14" x2="16" y2="14"></line>
+                    <line x1="8" y1="14" x2="8" y2="14"></line>
+                    <line x1="12" y1="14" x2="12" y2="14"></line>
+                    <line x1="16" y1="18" x2="16" y2="18"></line>
+                    <line x1="8" y1="18" x2="8" y2="18"></line>
+                    <line x1="12" y1="18" x2="12" y2="18"></line>
+                </svg>
+                <span style="margin-left: 10px;">CBM Calculator</span>
+            </a>
+            {% endif %}
+
+            <a href="/export_dashboard" class="active">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                <span style="margin-left: 10px;">Export Docs</span>
+            </a>
+
+            {% if g.user['role'] == 'admin' %}
+            <a href="/admin" style="color: var(--accent-primary);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span style="margin-left: 10px;">Admin Panel</span>
+            </a>
+            {% endif %}
+            <a href="#" class="logout-link" onclick="confirmLogout(event)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                <span style="margin-left: 10px;">Sign Out</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content" id="mainContent">
+        <div class="top-header">
+            <div class="page-title">
+                <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
+                <h1>Export Documentation Manager</h1>
+            </div>
+            <div>
+                <button onclick="openUploadModal()" class="btn btn-primary"
+                    style="padding: 10px 20px; font-weight: 600;">+ Upload New Document</button>
+            </div>
+        </div>
+
+        <!-- ALL UPLOADED FILES (GROUPED) -->
+        <div class="card"
+            style="padding: 20px; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <h3
+                style="margin-top: 0; color: var(--accent-primary); border-bottom: 2px solid #f0f0f0; padding-bottom: 15px; margin-bottom: 20px; font-size: 20px;">
+                Uploaded Documents by Container
+            </h3>
+
+            {% if not grouped_exports and not ungrouped_exports %}
+            <div style="text-align: center; padding: 40px; color: #888; background: #f9f9f9; border-radius: 8px;">
+                No export documents uploaded yet.
+            </div>
+            {% else %}
+
+            <!-- Render Grouped Exports (Accordions) -->
+            {% for shipment_id, group in grouped_exports.items() %}
+            <details class="accordion-group"
+                style="margin-bottom: 15px; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;" open>
+                <summary
+                    style="background: #f8fcf8; padding: 15px 20px; font-weight: 600; font-size: 16px; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; border-bottom: 1px solid #e0e0e0; list-style: none;">
+                    <span
+                        style="display: inline-flex; align-items: center; justify-content: center; width: 24px; color: var(--accent-primary);">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line>
+                            <path
+                                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+                            </path>
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                        </svg>
+                    </span>
+                    {{ group.container_name }}
+                    <span style="color: #666; font-size: 14px; font-weight: 400; margin-left: 10px;">(Client: {{
+                        group.client_name }})</span>
+                    <svg class="chevron-icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </summary>
+                <div style="padding: 0; background: white;">
+                    <table style="width: 100%; border-collapse: collapse; margin: 0;">
+                        <thead>
+                            <tr style="background: white;">
+                                <th
+                                    style="width: 200px; padding: 12px 20px; text-align: left; border-bottom: 1px solid #eee; color: #666; font-weight: 500;">
+                                    Document Type</th>
+                                <th
+                                    style="padding: 12px 20px; text-align: left; border-bottom: 1px solid #eee; color: #666; font-weight: 500;">
+                                    File Name</th>
+                                <th
+                                    style="width: 180px; padding: 12px 20px; text-align: left; border-bottom: 1px solid #eee; color: #666; font-weight: 500;">
+                                    Upload Date</th>
+                                <th
+                                    style="width: 200px; padding: 12px 20px; text-align: center; border-bottom: 1px solid #eee; color: #666; font-weight: 500;">
+                                    Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for doc in group.exports %}
+                            <tr style="border-bottom: 1px solid #f5f5f5;">
+                                <td style="padding: 12px 20px; font-weight: 600; color: var(--text-primary);">{{
+                                    doc['doc_name'] or 'Unknown' }}</td>
+                                <td style="padding: 12px 20px; color: var(--text-secondary);">{{ doc['file_name'] }}
+                                </td>
+                                <td style="padding: 12px 20px; color: #888; font-size: 13px;">{{ doc['upload_date'] }}
+                                </td>
+                                <td style="padding: 12px 20px; display: flex; gap: 8px; justify-content: center;">
+                                    <a href="{{ url_for('static', filename='uploads/' + doc['file_path']) }}"
+                                        target="_blank" class="btn btn-secondary"
+                                        style="padding: 6px 12px; font-size: 12px; background: #e8f5e9; color: var(--accent-primary); border: none;">📄
+                                        View</a>
+                                    <button onclick="deleteDoc({{ doc['id'] }})" class="btn btn-danger"
+                                        style="padding: 6px 12px; font-size: 12px; border: none; background: #fee2e2; color: #dc2626;">🗑
+                                        Delete</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+            {% endfor %}
+
+            <!-- Render Ungrouped Exports (Legacy) -->
+            {% if ungrouped_exports %}
+            <details class="accordion-group"
+                style="margin-bottom: 15px; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+                <summary
+                    style="background: #fafafa; padding: 15px 20px; font-weight: 600; font-size: 16px; color: #666; cursor: pointer; display: flex; align-items: center; border-bottom: 1px solid #e0e0e0; list-style: none;">
+                    <span
+                        style="display: inline-flex; align-items: center; justify-content: center; width: 24px; color: #888;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z">
+                            </path>
+                        </svg>
+                    </span>
+                    Ungrouped Documents (Legacy)
+                    <svg class="chevron-icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </summary>
+                <div style="padding: 0; background: white;">
+                    <table style="width: 100%; border-collapse: collapse; margin: 0;">
+                        <thead>
+                            <tr style="background: white;">
+                                <th
+                                    style="width: 200px; padding: 12px 20px; text-align: left; border-bottom: 1px solid #eee;">
+                                    Document Type</th>
+                                <th style="padding: 12px 20px; text-align: left; border-bottom: 1px solid #eee;">File
+                                    Name</th>
+                                <th
+                                    style="width: 180px; padding: 12px 20px; text-align: left; border-bottom: 1px solid #eee;">
+                                    Upload Date</th>
+                                <th
+                                    style="width: 200px; padding: 12px 20px; text-align: center; border-bottom: 1px solid #eee;">
+                                    Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for doc in ungrouped_exports %}
+                            <tr style="border-bottom: 1px solid #f5f5f5;">
+                                <td style="padding: 12px 20px; font-weight: 600; color: var(--text-primary);">{{
+                                    doc['doc_name'] or 'Unknown' }}</td>
+                                <td style="padding: 12px 20px; color: var(--text-secondary);">{{ doc['file_name'] }}
+                                </td>
+                                <td style="padding: 12px 20px; color: #888; font-size: 13px;">{{ doc['upload_date'] }}
+                                </td>
+                                <td style="padding: 12px 20px; display: flex; gap: 8px; justify-content: center;">
+                                    <a href="{{ url_for('static', filename='uploads/' + doc['file_path']) }}"
+                                        target="_blank" class="btn btn-secondary"
+                                        style="padding: 6px 12px; font-size: 12px; background: #e8f5e9; color: var(--accent-primary); border: none;">📄
+                                        View</a>
+                                    <button onclick="deleteDoc({{ doc['id'] }})" class="btn btn-danger"
+                                        style="padding: 6px 12px; font-size: 12px; border: none; background: #fee2e2; color: #dc2626;">🗑
+                                        Delete</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+            {% endif %}
+
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- DOCUMENT UPLOAD MODAL -->
+    <div id="uploadModal" class="modal-overlay"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;">
+        <div class="modal-content"
+            style="width: 500px; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+
+            <div class="modal-header"
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <h3 style="margin: 0; color: var(--accent-primary);">Upload Document</h3>
+                <span onclick="closeUploadModal()" style="cursor: pointer; font-size: 24px; color: #888;">&times;</span>
+            </div>
+
+            <form id="uploadForm" onsubmit="submitUpload(event)">
+                <div style="margin-bottom: 20px;">
+                    <label
+                        style="display: block; font-weight: 500; margin-bottom: 8px; color: var(--text-primary);">Select
+                        Shipment / Container</label>
+                    <select id="shipmentSelect" required
+                        style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ddd; font-family: inherit;">
+                        <option value="">-- Choose Container --</option>
+                        {% for s in shipments %}
+                        <option value="{{ s['id'] }}">{{ s['container_name'] }} (Client: {{ s['client_name'] }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label
+                        style="display: block; font-weight: 500; margin-bottom: 8px; color: var(--text-primary);">Select
+                        Document Name</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <select id="docTypeSelect" required
+                            style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ddd; font-family: inherit;">
+                            <option value="">-- Choose Name --</option>
+                            {% for dt in doc_types %}
+                            <option value="{{ dt['id'] }}">{{ dt['name'] }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="button" class="btn btn-secondary" onclick="openAddTypeModal()"
+                            style="padding: 10px; white-space: nowrap;">+ Add</button>
+                        <button type="button" class="btn btn-danger" onclick="deleteSelectedType()"
+                            style="padding: 10px; white-space: nowrap;">🗑 Delete</button>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <label
+                        style="display: block; font-weight: 500; margin-bottom: 8px; color: var(--text-primary);">Upload
+                        File</label>
+                    <div class="file-upload-wrapper"
+                        style="border: 2px dashed #ccc; padding: 20px; border-radius: 8px; text-align: center; background: #fafafa;">
+                        <input type="file" id="documentFile" required accept=".pdf,.png,.jpg,.jpeg,.xls,.xlsx"
+                            style="max-width: 100%;">
+                        <p style="margin: 10px 0 0 0; font-size: 12px; color: #888;">Accepted: PDF, Images (JPG/PNG),
+                            Excel (XLS/XLSX)</p>
+                    </div>
+                </div>
+
+                <div style="text-align: right; margin-top: 10px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeUploadModal()"
+                        style="padding: 10px 20px; margin-right: 10px;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="uploadBtn" style="padding: 10px 20px;">Upload
+                        File</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ADD DOCUMENT NAME MODAL (Nested logic) -->
+    <div id="addTypeModal" class="modal-overlay"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1010;">
+        <div class="modal-content" style="width: 350px; background: white; padding: 25px; border-radius: 12px;">
+            <h3 style="margin-top: 0; color: var(--accent-primary);">Add Document Name</h3>
+            <input type="text" id="newTypeName" placeholder="e.g. Commercial Invoice"
+                style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 20px;">
+            <div style="text-align: right;">
+                <button type="button" class="btn btn-secondary" onclick="closeAddTypeModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveNewType()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGOUT CONFIRMATION MODAL -->
+    <div id="logoutModal" class="modal-overlay"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;">
+        <div class="modal-content"
+            style="width: 350px; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <div class="modal-header"
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin: 0; color: var(--accent-primary);">Sign Out</h3>
+            </div>
+            <div class="modal-body" style="text-align: center; color: var(--text-secondary); margin-bottom: 25px;">
+                <p>Are you sure you want to sign out?</p>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: center; gap: 15px;">
+                <button type="button" class="btn" onclick="closeLogoutModal()"
+                    style="background: #f5f5f5; color: #333; border: 1px solid #ddd;">Cancel</button>
+                <button type="button" class="btn" onclick="proceedLogout()"
+                    style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca;">Sign Out</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // UI Toggles
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+            document.getElementById('mainContent').classList.toggle('expanded');
+        }
+
+        // Logout Modal
+        function confirmLogout(event) { event.preventDefault(); document.getElementById('logoutModal').style.display = 'flex'; }
+        function closeLogoutModal() { document.getElementById('logoutModal').style.display = 'none'; }
+        function proceedLogout() { window.location.href = "{{ url_for('logout') }}"; }
+
+        // Upload Modal
+        function openUploadModal() { document.getElementById('uploadModal').style.display = 'flex'; }
+        function closeUploadModal() {
+            document.getElementById('uploadModal').style.display = 'none';
+            document.getElementById('uploadForm').reset();
+        }
+
+        // Add Type Modal
+        function openAddTypeModal() {
+            document.getElementById('addTypeModal').style.display = 'flex';
+            setTimeout(() => document.getElementById('newTypeName').focus(), 50);
+        }
+        function closeAddTypeModal() { document.getElementById('addTypeModal').style.display = 'none'; document.getElementById('newTypeName').value = ''; }
+
+        window.onclick = function (event) {
+            if (event.target == document.getElementById('logoutModal')) closeLogoutModal();
+            if (event.target == document.getElementById('uploadModal')) closeUploadModal();
+            if (event.target == document.getElementById('addTypeModal')) closeAddTypeModal();
+        }
+
+        // Save New Document Name
+        function saveNewType() {
+            const name = document.getElementById('newTypeName').value.trim();
+            if (!name) { alert("Name cannot be empty"); return; }
+
+            fetch('/api/add_export_type', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name })
+            }).then(async res => {
+                if (!res.ok) throw new Error("Server Error " + res.status);
+                return res.json();
+            }).then(data => {
+                if (data.success) {
+                    const select = document.getElementById('docTypeSelect');
+                    const option = document.createElement("option");
+                    option.text = data.name;
+                    option.value = data.id;
+                    option.selected = true;
+                    select.add(option);
+                    closeAddTypeModal();
+                } else {
+                    alert("Error: " + data.error);
+                }
+            }).catch(err => {
+                alert("Failed to save Document Name! Please ensure your python server has been restarted (python app.py) so it has the new API routes active.");
+            });
+        }
+
+        // Delete Selected Document Name
+        function deleteSelectedType() {
+            const select = document.getElementById('docTypeSelect');
+            const typeId = select.value;
+
+            if (!typeId) { alert("Please select a document name to delete."); return; }
+
+            if (confirm("Are you sure you want to delete this Document Name?")) {
+                fetch('/api/delete_export_type', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: typeId })
+                }).then(async res => {
+                    if (!res.ok) throw new Error("Server Error " + res.status);
+                    return res.json();
+                }).then(data => {
+                    if (data.success) {
+                        select.remove(select.selectedIndex);
+                        select.value = "";
+                    } else {
+                        alert("Error: " + data.error);
+                    }
+                }).catch(err => {
+                    alert("Failed to delete Document Name! Please ensure your python server has been restarted (python app.py) so it has the new API routes active.");
+                });
+            }
+        }
+
+        // Submit File Upload
+        function submitUpload(event) {
+            event.preventDefault();
+
+            const shipmentId = document.getElementById('shipmentSelect').value;
+            const docTypeId = document.getElementById('docTypeSelect').value;
+            const fileInput = document.getElementById('documentFile');
+            const file = fileInput.files[0];
+
+            if (!shipmentId) { alert("Please select a Container."); return; }
+            if (!docTypeId) { alert("Please select a Document Name."); return; }
+            if (!file) { alert("Please choose a file to upload."); return; }
+
+            const formData = new FormData();
+            formData.append('shipment_id', shipmentId);
+            formData.append('doc_type_id', docTypeId);
+            formData.append('file', file);
+
+            const btn = document.getElementById('uploadBtn');
+            btn.disabled = true;
+            btn.innerText = "Uploading...";
+
+            fetch('/api/upload_export_doc', {
+                method: 'POST',
+                body: formData
+            }).then(async res => {
+                if (!res.ok) throw new Error("Server Error " + res.status);
+                return res.json();
+            }).then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert("Error uploading file: " + data.error);
+                    btn.disabled = false;
+                    btn.innerText = "Upload File";
+                }
+            }).catch(err => {
+                alert("Failed to upload document! Please ensure your python server has been restarted (python app.py) so it has the new API routes active.");
+                btn.disabled = false;
+                btn.innerText = "Upload File";
+            });
+        }
+
+        // Delete Uploaded Document
+        function deleteDoc(id) {
+            if (confirm("Are you sure you want to physically delete this file and record?")) {
+                fetch('/api/delete_uploaded_export', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id })
+                }).then(async res => {
+                    if (!res.ok) throw new Error("Server Error " + res.status);
+                    return res.json();
+                }).then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert("Error deleting document: " + data.error);
+                    }
+                }).catch(err => {
+                    alert("Failed to delete document! Please ensure your python server has been restarted.");
+                });
+            }
+        }
+    </script>
+</body>
+
+</html>

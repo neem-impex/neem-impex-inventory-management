@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Export Document Form - Neem Impex</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .form-section {
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+
+        .form-section h3 {
+            margin-top: 0;
+            color: var(--accent-primary);
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .form-col label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            font-size: 13px;
+        }
+
+        .form-col input,
+        .form-col textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: inherit;
+        }
+
+        .items-table th {
+            background: #eee;
+        }
+
+        .items-table input {
+            width: 100%;
+            border: 1px solid #ddd;
+            padding: 6px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar" id="sidebar">
+        <button class="close-sidebar-btn" onclick="toggleSidebar()">×</button>
+        <div style="padding: 10px;">
+            <h1 style="color: white; font-size: 24px; font-weight: bold; margin-bottom: 5px;">{{ g.user['company_name']
+                if g.user else 'NEEM IMPEX' }}</h1>
+            <p style="color: var(--accent-primary); font-size: 12px; margin-top: 0; letter-spacing: 2px;">EXPORT DOCS
+            </p>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="/"><span style="margin-left: 10px;">Product List</span></a>
+            <a href="/calculator"><span style="margin-left: 10px;">CBM Calculator</span></a>
+            <a href="/export_dashboard" class="active"><span style="margin-left: 10px;">Export Docs</span></a>
+            {% if g.user['role'] == 'admin' %}
+            <a href="/admin"><span style="margin-left: 10px;">Admin Panel</span></a>
+            {% endif %}
+        </nav>
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <div class="top-header">
+            <div class="page-title">
+                <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
+                <h1>{{ 'Edit' if doc else 'Create' }} Export Document</h1>
+            </div>
+            <div>
+                <button onclick="saveDocument()" class="btn btn-primary"
+                    style="padding: 10px 20px; font-weight: 600;">💾 Save Document</button>
+            </div>
+        </div>
+
+        <div class="card" style="max-width: 1000px; margin: 0 auto;">
+
+            <input type="hidden" id="doc_id" value="{{ doc['id'] if doc else '' }}">
+
+            <!-- HEADER INFO -->
+            <div class="form-section">
+                <h3>Document Info</h3>
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>Invoice No.</label>
+                        <input type="text" id="invoice_no" value="{{ doc['invoice_no'] if doc else '' }}">
+                    </div>
+                    <div class="form-col">
+                        <label>Invoice Date</label>
+                        <input type="date" id="invoice_date" value="{{ doc['invoice_date'] if doc else '' }}">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>Exporter's Ref</label>
+                        <input type="text" id="exporter_ref" value="{{ doc['exporter_ref'] if doc else '' }}">
+                    </div>
+                    <div class="form-col">
+                        <label>Buyer's Ref</label>
+                        <input type="text" id="buyer_ref" value="{{ doc['buyer_ref'] if doc else '' }}">
+                    </div>
+                </div>
+            </div>
+
+            <!-- PARTIES -->
+            <div class="form-section">
+                <h3>Parties</h3>
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>Consignee Name</label>
+                        <input type="text" id="consignee_name" value="{{ doc['consignee_name'] if doc else '' }}">
+                        <label style="margin-top: 10px;">Consignee Address</label>
+                        <textarea id="consignee_address"
+                            rows="3">{{ doc['consignee_address'] if doc else '' }}</textarea>
+                    </div>
+                    <div class="form-col">
+                        <label>Buyer (If other than consignee)</label>
+                        <input type="text" id="buyer_name" value="{{ doc['buyer_name'] if doc else '' }}">
+                        <label style="margin-top: 10px;">Buyer Address</label>
+                        <textarea id="buyer_address" rows="3">{{ doc['buyer_address'] if doc else '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ROUTING -->
+            <div class="form-section">
+                <h3>Transport & Routing</h3>
+                <div class="form-row">
+                    <div class="form-col"><label>Country of Origin</label><input type="text" id="country_of_origin"
+                            value="{{ doc['country_of_origin'] if doc else 'India' }}"></div>
+                    <div class="form-col"><label>Country of Destination</label><input type="text"
+                            id="country_of_destination" value="{{ doc['country_of_destination'] if doc else '' }}">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-col"><label>Vessel / Flight No.</label><input type="text" id="vessel_flight_no"
+                            value="{{ doc['vessel_flight_no'] if doc else '' }}"></div>
+                    <div class="form-col"><label>Port of Loading</label><input type="text" id="port_of_loading"
+                            value="{{ doc['port_of_loading'] if doc else '' }}"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-col"><label>Port of Discharge</label><input type="text" id="port_of_discharge"
+                            value="{{ doc['port_of_discharge'] if doc else '' }}"></div>
+                    <div class="form-col"><label>Final Destination</label><input type="text" id="final_destination"
+                            value="{{ doc['final_destination'] if doc else '' }}"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-col" style="grid-column: span 2;">
+                        <label>Terms of Payment / Delivery Options</label>
+                        <input type="text" id="terms_of_payment" value="{{ doc['terms_of_payment'] if doc else '' }}">
+                    </div>
+                </div>
+            </div>
+
+            <!-- ITEMS -->
+            <div class="form-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0; border: none; padding: 0;">Goods Details</h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="text" id="productSearch" placeholder="Type to insert from inventory..."
+                            list="inventoryList"
+                            style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 250px;">
+                        <datalist id="inventoryList">
+                            {% for p in json.loads(products_json) %}
+                            <option value="{{ p['name'] }}">
+                                {% endfor %}
+                        </datalist>
+                        <button class="btn btn-secondary" onclick="addInventoryItem()" style="padding: 8px 15px;">+
+                            Insert</button>
+                        <button class="btn btn-primary" onclick="addEmptyRow()" style="padding: 8px 15px;">+ Custom
+                            Row</button>
+                    </div>
+                </div>
+
+                <div class="table-container" style="overflow-x: auto;">
+                    <table class="items-table" id="itemsTable">
+                        <thead>
+                            <tr>
+                                <th>Marks & Nos.</th>
+                                <th>No. & Kind of Pkgs</th>
+                                <th style="width: 30%;">Description of Goods</th>
+                                <th>HSN Code</th>
+                                <th>Quantity</th>
+                                <th>Rate</th>
+                                <th>Amount</th>
+                                <th style="width: 40px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="itemsBody">
+                            <!-- Items will be injected here -->
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="6" style="text-align: right; font-weight: bold;">Total Amount:</td>
+                                <td><input type="number" id="grand_total" readonly
+                                        style="font-weight: bold; background: #eee;"></td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script id="products-data" type="application/json">
+        {{ products_json | safe }}
+    </script>
+    <script id="existing-items-data" type="application/json">
+        {{ items | tojson | safe if items else '[]' }}
+    </script>
+
+    <script>
+        const products = JSON.parse(document.getElementById('products-data').textContent);
+        const existingItems = JSON.parse(document.getElementById('existing-items-data').textContent);
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+            document.getElementById('mainContent').classList.toggle('expanded');
+        }
+
+        function createRowHtml(item = {}) {
+            const id = 'row_' + Math.random().toString(36).substr(2, 9);
+            return `
+                <tr id="${id}">
+                    <td><input type="text" class="i-marks" value="${item.marks_and_nos || ''}"></td>
+                    <td><input type="text" class="i-pkgs" value="${item.no_and_kind_of_pkgs || ''}"></td>
+                    <td><input type="text" class="i-desc" value="${item.description_of_goods || ''}"></td>
+                    <td><input type="text" class="i-hsn" value="${item.hsn_code || ''}"></td>
+                    <td><input type="number" step="0.01" class="i-qty" value="${item.quantity || ''}" oninput="calcRow('${id}')"></td>
+                    <td><input type="number" step="0.01" class="i-rate" value="${item.rate || ''}" oninput="calcRow('${id}')"></td>
+                    <td><input type="number" step="0.01" class="i-amount" value="${item.amount || ''}" readonly style="background:#f9f9f9;"></td>
+                    <td><button tabindex="-1" onclick="document.getElementById('${id}').remove(); calcGrandTotal()" style="color:red; background:none; border:none; cursor:pointer; font-size:18px;">×</button></td>
+                </tr>
+            `;
+        }
+
+        function addEmptyRow() {
+            document.getElementById('itemsBody').insertAdjacentHTML('beforeend', createRowHtml());
+        }
+
+        function addInventoryItem() {
+            const val = document.getElementById('productSearch').value;
+            const p = products.find(prod => prod.name === val);
+            if (p) {
+                document.getElementById('itemsBody').insertAdjacentHTML('beforeend', createRowHtml({
+                    description_of_goods: p.name,
+                    quantity: '',
+                    rate: ''
+                }));
+                document.getElementById('productSearch').value = '';
+            } else {
+                alert('Product not found in inventory.');
+            }
+        }
+
+        function calcRow(id) {
+            const row = document.getElementById(id);
+            const qty = parseFloat(row.querySelector('.i-qty').value) || 0;
+            const rate = parseFloat(row.querySelector('.i-rate').value) || 0;
+            const amount = qty * rate;
+            row.querySelector('.i-amount').value = amount.toFixed(2);
+            calcGrandTotal();
+        }
+
+        function calcGrandTotal() {
+            let total = 0;
+            document.querySelectorAll('.i-amount').forEach(el => {
+                total += parseFloat(el.value) || 0;
+            });
+            document.getElementById('grand_total').value = total.toFixed(2);
+        }
+
+        function saveDocument() {
+            const items = [];
+            document.querySelectorAll('#itemsBody tr').forEach(row => {
+                items.push({
+                    marks_and_nos: row.querySelector('.i-marks').value,
+                    no_and_kind_of_pkgs: row.querySelector('.i-pkgs').value,
+                    description_of_goods: row.querySelector('.i-desc').value,
+                    hsn_code: row.querySelector('.i-hsn').value,
+                    quantity: parseFloat(row.querySelector('.i-qty').value) || 0,
+                    rate: parseFloat(row.querySelector('.i-rate').value) || 0,
+                    amount: parseFloat(row.querySelector('.i-amount').value) || 0
+                });
+            });
+
+            const payload = {
+                id: document.getElementById('doc_id').value,
+                invoice_no: document.getElementById('invoice_no').value,
+                invoice_date: document.getElementById('invoice_date').value,
+                exporter_ref: document.getElementById('exporter_ref').value,
+                buyer_ref: document.getElementById('buyer_ref').value,
+                consignee_name: document.getElementById('consignee_name').value,
+                consignee_address: document.getElementById('consignee_address').value,
+                buyer_name: document.getElementById('buyer_name').value,
+                buyer_address: document.getElementById('buyer_address').value,
+                country_of_origin: document.getElementById('country_of_origin').value,
+                country_of_destination: document.getElementById('country_of_destination').value,
+                vessel_flight_no: document.getElementById('vessel_flight_no').value,
+                port_of_loading: document.getElementById('port_of_loading').value,
+                port_of_discharge: document.getElementById('port_of_discharge').value,
+                final_destination: document.getElementById('final_destination').value,
+                terms_of_payment: document.getElementById('terms_of_payment').value,
+                total_amount: parseFloat(document.getElementById('grand_total').value) || 0,
+                items: items
+            };
+
+            fetch('/api/save_export', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(res => res.json()).then(data => {
+                if (data.success) {
+                    window.location.href = '/export_dashboard';
+                } else {
+                    alert("Error saving document: " + data.error);
+                }
+            });
+        }
+
+        // Init
+        window.onload = function () {
+            if (existingItems.length > 0) {
+                existingItems.forEach(item => {
+                    document.getElementById('itemsBody').insertAdjacentHTML('beforeend', createRowHtml(item));
+                });
+            } else {
+                addEmptyRow(); // Start with one empty row
+            }
+            calcGrandTotal();
+        }
+    </script>
+</body>
+
+</html>

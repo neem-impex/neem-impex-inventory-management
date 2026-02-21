@@ -12,6 +12,7 @@ from flask import session, flash
 
 app = Flask(__name__)
 app.secret_key = 'super_secret_key_neem_impex' # Required for session
+app.jinja_env.globals.update(json=json) # Make json available to all templates
 DB_NAME = "inventory.db"
 UPLOAD_FOLDER = "static/uploads"
 
@@ -75,23 +76,53 @@ def init_db():
             )
         ''')
         
+        # 1.5. NEW AUTOMATIC SAFE MIGRATION: Export Documentation Tables (File Upload System)
+        db.execute('''
+            CREATE TABLE IF NOT EXISTS export_doc_types (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE
+            )
+        ''')
+        db.execute('''
+            CREATE TABLE IF NOT EXISTS uploaded_exports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                doc_type_id INTEGER,
+                shipment_id INTEGER,
+                file_name TEXT NOT NULL,
+                file_path TEXT NOT NULL,
+                upload_date TEXT NOT NULL,
+                FOREIGN KEY(doc_type_id) REFERENCES export_doc_types(id),
+                FOREIGN KEY(shipment_id) REFERENCES shipments(id)
+            )
+        ''')
+        
+        # 1.6 AUTO-MIGRATION: Add shipment_id to uploaded_exports if missing
+        try:
+            db.execute("SELECT shipment_id FROM uploaded_exports LIMIT 1")
+        except sqlite3.OperationalError:
+            print("Updating Database: Adding missing 'shipment_id' column to uploaded_exports...")
+            db.execute("ALTER TABLE uploaded_exports ADD COLUMN shipment_id INTEGER")
+            db.commit()
+            print("Database Updated Successfully!")
+
+        
         # 2. AUTO-MIGRATION: Check if 'total_expense' exists, if not, add it.
         try:
             db.execute("SELECT total_expense FROM shipments LIMIT 1")
         except sqlite3.OperationalError:
-            print("⚠️ Updating Database: Adding missing 'total_expense' column...")
+            print("Updating Database: Adding missing 'total_expense' column...")
             db.execute("ALTER TABLE shipments ADD COLUMN total_expense REAL DEFAULT 0")
             db.commit()
-            print("✅ Database Updated Successfully!")
+            print("Database Updated Successfully!")
 
         # 3. AUTO-MIGRATION: Check if 'category' exists, if not, add it.
         try:
             db.execute("SELECT category FROM products LIMIT 1")
         except sqlite3.OperationalError:
-            print("⚠️ Updating Database: Adding missing 'category' column...")
+            print("Updating Database: Adding missing 'category' column...")
             db.execute("ALTER TABLE products ADD COLUMN category TEXT")
             db.commit()
-            print("✅ Database Updated Successfully!")
+            print("Database Updated Successfully!")
 
         # 4. Create Users Table
         db.execute('''
@@ -111,12 +142,12 @@ def init_db():
         try:
             db.execute("SELECT role FROM users LIMIT 1")
         except sqlite3.OperationalError:
-            print("⚠️ Updating Database: Adding missing 'role' and permission columns to users...")
+            print("Updating Database: Adding missing 'role' and permission columns to users...")
             db.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'")
             db.execute("ALTER TABLE users ADD COLUMN access_inventory INTEGER DEFAULT 1")
             db.execute("ALTER TABLE users ADD COLUMN access_calculator INTEGER DEFAULT 1")
             db.commit()
-            print("✅ Users Table Updated Successfully!")
+            print("Users Table Updated Successfully!")
 
         # 6. Create Default Admin User
         # Logic: Check for 'admin@gmail.com'. If not found, check for old 'Shubham' and rename it. If neither, create new.
@@ -126,7 +157,7 @@ def init_db():
         # Check if old admin exists and migrate
         old_admin = db.execute("SELECT * FROM users WHERE email = 'Shubham'").fetchone()
         if old_admin:
-            print("⚠️ Migrating Admin User 'Shubham' to 'admin@gmail.com'...")
+            print("Migrating Admin User 'Shubham' to 'admin@gmail.com'...")
             db.execute("UPDATE users SET email = ? WHERE id = ?", (target_email, old_admin['id']))
             db.commit()
         
@@ -137,7 +168,7 @@ def init_db():
             db.execute("INSERT INTO users (company_name, email, password_hash, role, access_inventory, access_calculator) VALUES (?, ?, ?, ?, ?, ?)",
                        ("Admin", target_email, hashed_pw, "admin", 1, 1))
             db.commit()
-            print(f"✅ Admin User '{target_email}' Created/Verified.")
+            print(f"Admin User '{target_email}' Created/Verified.")
 
         db.commit()
 
@@ -209,7 +240,7 @@ def login():
             has_calc = bool(user['access_calculator'])
 
             if role == 'admin':
-                return redirect(url_for('admin_dashboard'))
+                return redirect(url_for('index'))
             elif has_inv:
                 return redirect(url_for('index'))
             elif has_calc:
@@ -396,7 +427,7 @@ def import_inventory():
                 if len(row) < 7: continue
                 name = row[0]
                 pack_gm = float(row[1] or 0)
-                case_size = int(row[2] or 0)
+                case_size = int(float(row[2] or 0))
                 gross_wt = float(row[3] or 0)
                 l = float(row[4] or 0)
                 w = float(row[5] or 0)
@@ -491,7 +522,7 @@ def add_product():
     name = request.form['name']
     category = request.form.get('category', '')
     pack_size_gm = float(request.form['pack_size_gm'] or 0)
-    case_size = int(request.form['case_size'] or 0)
+    case_size = int(float(request.form['case_size'] or 0))
     gross_weight_case = float(request.form['gross_weight_case'] or 0)
     case_len = float(request.form['case_len'] or 0)
     case_width = float(request.form['case_width'] or 0)
@@ -527,7 +558,7 @@ def api_update_product():
         name = data.get('name')
         category = data.get('category', '')
         pack_gm = float(data.get('pack_size_gm') or 0)
-        case_size = int(data.get('case_size') or 0)
+        case_size = int(float(data.get('case_size') or 0))
         gross_wt = float(data.get('gross_weight_case') or 0)
         # Dimensions
         l = float(data.get('case_len_inch') or 0)
@@ -578,7 +609,7 @@ def update_products():
 
     for i in range(len(ids)):
         p_gm = float(pack_gms[i] or 0)
-        c_size = int(case_sizes[i] or 0)
+        c_size = int(float(case_sizes[i] or 0))
         pk_kg = p_gm / 1000
         net_wt = pk_kg * c_size
         l = float(lens[i] or 0)
@@ -600,6 +631,142 @@ def delete_products():
     db.commit()
     return redirect(url_for('index'))
 
+# --- EXPORT DOCUMENTATION UPLOAD ROUTES ---
+
+@app.route('/export_dashboard')
+@login_required
+def export_dashboard():
+    db = get_db()
+    
+    # Get active shipments for the dropdown
+    shipments = db.execute("SELECT id, container_name, client_name FROM shipments ORDER BY id DESC").fetchall()
+    
+    # Get all exports with their document names and container details
+    exports_cursor = db.execute('''
+        SELECT u.id, u.file_name, u.file_path, u.upload_date, 
+               t.name as doc_name,
+               s.container_name, s.client_name, u.shipment_id
+        FROM uploaded_exports u
+        LEFT JOIN export_doc_types t ON u.doc_type_id = t.id
+        LEFT JOIN shipments s ON u.shipment_id = s.id
+        ORDER BY s.id DESC, u.id DESC
+    ''').fetchall()
+    
+    # Group exports by shipment_id in Python for easier Jinja rendering
+    # Group structure: { shipment_id: {'container_name': '', 'client_name': '', 'exports': []} }
+    grouped_exports = {}
+    ungrouped_exports = [] # For backwards compatibility with old files
+    
+    for row in exports_cursor:
+        export_dict = dict(row)
+        s_id = export_dict['shipment_id']
+        if s_id:
+            if s_id not in grouped_exports:
+                grouped_exports[s_id] = {
+                    'container_name': export_dict['container_name'] or 'Unknown Container',
+                    'client_name': export_dict['client_name'] or 'Unknown Client',
+                    'exports': []
+                }
+            grouped_exports[s_id]['exports'].append(export_dict)
+        else:
+            ungrouped_exports.append(export_dict)
+            
+    doc_types = db.execute("SELECT * FROM export_doc_types ORDER BY name").fetchall()
+    
+    return render_template('export_dashboard.html', 
+                           grouped_exports=grouped_exports, 
+                           ungrouped_exports=ungrouped_exports,
+                           doc_types=doc_types,
+                           shipments=shipments)
+
+@app.route('/api/add_export_type', methods=['POST'])
+@login_required
+def api_add_export_type():
+    data = request.get_json()
+    name = data.get('name')
+    if not name: return jsonify({'success': False, 'error': 'Name required'})
+    db = get_db()
+    try:
+        db.execute("INSERT INTO export_doc_types (name) VALUES (?)", (name,))
+        db.commit()
+        new_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+        return jsonify({'success': True, 'id': new_id, 'name': name})
+    except sqlite3.IntegrityError:
+        return jsonify({'success': False, 'error': 'Document type already exists'})
+
+@app.route('/api/delete_export_type', methods=['POST'])
+@login_required
+def api_delete_export_type():
+    data = request.get_json()
+    type_id = data.get('id')
+    db = get_db()
+    
+    # Optional: block deletion if files are tied to it, or just orphan them. 
+    # For now, we will just delete the type. Existing uploads will show 'Unknown' or NULL name.
+    db.execute("DELETE FROM export_doc_types WHERE id = ?", (type_id,))
+    db.commit()
+    return jsonify({'success': True})
+
+@app.route('/api/upload_export_doc', methods=['POST'])
+@login_required
+def upload_export_doc():
+    doc_type_id = request.form.get('doc_type_id')
+    shipment_id = request.form.get('shipment_id')
+    
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'error': 'No file part'})
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'No selected file'})
+    
+    if not shipment_id:
+        return jsonify({'success': False, 'error': 'Please select a Container.'})
+        
+    if not doc_type_id:
+        return jsonify({'success': False, 'error': 'Please select a document name.'})
+
+    # Strict extension check: PDF, Image, Excel
+    allowed_extensions = {'.pdf', '.png', '.jpg', '.jpeg', '.xls', '.xlsx'}
+    _, ext = os.path.splitext(file.filename)
+    if ext.lower() not in allowed_extensions:
+         return jsonify({'success': False, 'error': 'Invalid file type. Only PDF, Image, or Excel allowed.'})
+
+    if file:
+        filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{file.filename.replace(' ', '_')}"
+        file_path = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(file_path)
+        
+        db = get_db()
+        date_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+        db.execute('''
+            INSERT INTO uploaded_exports (doc_type_id, shipment_id, file_name, file_path, upload_date)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (doc_type_id, shipment_id, file.filename, filename, date_str))
+        db.commit()
+        
+        return jsonify({'success': True})
+
+@app.route('/api/delete_uploaded_export', methods=['POST'])
+@login_required
+def delete_uploaded_export():
+    data = request.get_json()
+    export_id = data.get('id')
+    db = get_db()
+    
+    export = db.execute("SELECT * FROM uploaded_exports WHERE id = ?", (export_id,)).fetchone()
+    if export:
+        try:
+             os.remove(os.path.join(UPLOAD_FOLDER, export['file_path']))
+        except OSError:
+             pass # File might already be gone physically
+             
+        db.execute("DELETE FROM uploaded_exports WHERE id = ?", (export_id,))
+        db.commit()
+        return jsonify({'success': True})
+    return jsonify({'success': False, 'error': 'File not found'})
+
+init_db()  # <--- Move it here, outside the 'if' block
+
 if __name__ == '__main__':
-    init_db()
     app.run(debug=True, use_reloader=False)

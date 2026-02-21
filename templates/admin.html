@@ -71,20 +71,16 @@
 <body>
 
     <!-- SIDEBAR -->
-    <div class="sidebar">
-        <div class="logo-container" style="padding: 20px 0; text-align: center;">
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Neem Impex" class="logo">
-            <h2>Admin Panel</h2>
+    <div class="sidebar" id="sidebar">
+        <button class="close-sidebar-btn" onclick="toggleSidebar()">×</button>
+        <div style="padding: 10px;">
+            <h1 style="color: white; font-size: 24px; font-weight: bold; margin-bottom: 5px;">{{ g.user['company_name']
+                if g.user else 'NEEM IMPEX' }}</h1>
+            <p style="color: var(--accent-primary); font-size: 12px; margin-top: 0; letter-spacing: 2px;">ADMIN PANEL
+            </p>
         </div>
 
         <nav class="sidebar-nav">
-            <a href="#" class="active">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                </svg>
-                <span style="margin-left: 10px;">User Management</span>
-            </a>
             <a href="{{ url_for('index') }}">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round">
@@ -94,8 +90,32 @@
                     <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
                     <line x1="12" y1="22.08" x2="12" y2="12"></line>
                 </svg>
-                <span style="margin-left: 10px;">Back to Product List</span>
+                <span style="margin-left: 10px;">Product List</span>
             </a>
+
+            <a href="{{ url_for('calculator') }}">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+                    <line x1="8" y1="6" x2="16" y2="6"></line>
+                    <line x1="16" y1="14" x2="16" y2="14"></line>
+                    <line x1="8" y1="14" x2="8" y2="14"></line>
+                    <line x1="12" y1="14" x2="12" y2="14"></line>
+                    <line x1="16" y1="18" x2="16" y2="18"></line>
+                    <line x1="8" y1="18" x2="8" y2="18"></line>
+                    <line x1="12" y1="18" x2="12" y2="18"></line>
+                </svg>
+                <span style="margin-left: 10px;">CBM Calculator</span>
+            </a>
+
+            <a href="#" class="active">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span style="margin-left: 10px;">Admin Panel</span>
+            </a>
+
             <a href="#" class="logout-link" onclick="confirmLogout(event)">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round">
@@ -109,11 +129,12 @@
     </div>
 
     <!-- MAIN CONTENT -->
-    <div class="main-content">
+    <div class="main-content" id="mainContent">
 
         <!-- HEADER -->
         <div class="top-header">
             <div class="page-title">
+                <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
                 <h1>User Management</h1>
             </div>
             <div class="user-profile">
@@ -214,6 +235,13 @@
     </div>
 
     <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+        }
+
         // Logout Modal Logic
         function confirmLogout(event) {
             event.preventDefault();

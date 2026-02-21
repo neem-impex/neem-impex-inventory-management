@@ -116,16 +116,7 @@
             <!-- LOGIN FORM -->
             <div id="loginForm">
 
-                <!-- Role Toggle -->
-                <div class="role-toggle-container">
-                    <div class="role-toggle">
-                        <div class="toggle-bg"></div>
-                        <button type="button" class="toggle-btn active" onclick="setRole('user')"
-                            id="btn-user">User</button>
-                        <button type="button" class="toggle-btn" onclick="setRole('admin')"
-                            id="btn-admin">Admin</button>
-                    </div>
-                </div>
+
 
                 <h2 id="loginTitle">Welcome Back</h2>
                 <p class="subtitle">Please enter your details to sign in.</p>
@@ -239,33 +230,10 @@
     </div>
 
     <script>
-        let currentRole = 'user';
 
-        function setRole(role) {
-            currentRole = role;
-            const btnUser = document.getElementById('btn-user');
-            const btnAdmin = document.getElementById('btn-admin');
-            const toggleBg = document.querySelector('.toggle-bg');
-            const title = document.getElementById('loginTitle');
-            const signupLink = document.querySelector('.switch-auth');
-
-            if (role === 'admin') {
-                btnUser.classList.remove('active');
-                btnAdmin.classList.add('active');
-                toggleBg.style.left = '50%';
-                title.innerText = 'Admin Login';
-                signupLink.style.display = 'none'; // Hide signup for admin
-            } else {
-                btnAdmin.classList.remove('active');
-                btnUser.classList.add('active');
-                toggleBg.style.left = '5px';
-                title.innerText = 'Welcome Back';
-                signupLink.style.display = 'block'; // Show signup for user
-            }
-        }
 
         function showSignup() {
-            if (currentRole === 'admin') return; // Prevent signup access if stuck in admin mode (safety)
+            // Role check removed
             document.getElementById('loginForm').style.display = 'none';
             document.getElementById('signupForm').style.display = 'block';
             document.getElementById('forgotForm').style.display = 'none';
